@@ -1,0 +1,1247 @@
+/* ==========================================================================
+   SMART GROCERY & BUDGET SAFETY TRACKER - MOBILE PWA STYLESHEET
+   Desain Khusus Smartphone (Max 430px) - Native Feel & Thumb Friendly
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Palet Warna Premium Dark-Slate & Neon Accents */
+  --bg-deep: #080d15;
+  --bg-surface: #0f172a;
+  --bg-card: #141e33;
+  --bg-card-subtle: #1a2742;
+  --bg-glass: rgba(15, 23, 42, 0.85);
+  
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-focus: #38bdf8;
+  
+  /* Aksen Finansial & Status */
+  --emerald: #10b981;
+  --emerald-glow: rgba(16, 185, 129, 0.25);
+  --emerald-dark: #064e3b;
+  
+  --amber: #f59e0b;
+  --amber-glow: rgba(245, 158, 11, 0.25);
+  
+  --crimson: #ef4444;
+  --crimson-glow: rgba(239, 68, 68, 0.35);
+  --crimson-dark: #450a0a;
+  
+  --cyan: #06b6d4;
+  --sky: #38bdf8;
+  --indigo: #6366f1;
+  
+  /* Tipografi */
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  
+  /* Dimensi & Layout */
+  --max-app-width: 430px;
+  --bottom-nav-height: 68px;
+  --radius-xl: 24px;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  
+  --shadow-lg: 0 14px 34px -8px rgba(0, 0, 0, 0.6);
+  --shadow-glow-red: 0 0 25px rgba(239, 68, 68, 0.45);
+  --shadow-glow-green: 0 0 20px rgba(16, 185, 129, 0.35);
+}
+
+/* Reset Dasar */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+
+input, textarea, select {
+  user-select: text;
+}
+
+body {
+  background-color: #030712;
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+/* Container Pembungkus Desktop vs Mobile */
+.desktop-viewport-wrapper {
+  width: 100%;
+  max-width: var(--max-app-width);
+  min-height: 100vh;
+  height: 100vh;
+  position: relative;
+  background-color: var(--bg-deep);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@media (min-width: 480px) {
+  body {
+    background: radial-gradient(circle at 50% 20%, #172554 0%, #030712 70%);
+    padding: 20px 0;
+  }
+  .desktop-viewport-wrapper {
+    height: 94vh;
+    border-radius: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+}
+
+/* Header Aplikasi Utama */
+.app-header {
+  padding: max(14px, env(safe-area-inset-top, 14px)) 16px 14px 16px;
+  background-color: var(--bg-deep);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 90;
+}
+
+.brand-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.app-logo-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+.brand-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  background: linear-gradient(135deg, #f8fafc 20%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.brand-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-icon-ghost {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-icon-ghost:active {
+  transform: scale(0.92);
+  background: var(--bg-card-subtle);
+}
+
+/* ==========================================================================
+   F-05: STICKY SAFETY HUD (PENGENDALI ANGGARAN & SISA SALDO)
+   Selalu terlihat di atas keranjang saat belanja mendorong troli
+   ========================================================================== */
+.budget-safety-hud {
+  margin: 12px 16px 8px 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--bg-card) 0%, rgba(20, 30, 51, 0.95) 100%);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.budget-safety-hud.status-safe {
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 24px -6px var(--emerald-glow);
+}
+
+.budget-safety-hud.status-warning {
+  border-color: rgba(245, 158, 11, 0.4);
+  box-shadow: 0 8px 24px -6px var(--amber-glow);
+}
+
+.budget-safety-hud.status-danger {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: var(--shadow-glow-red);
+  animation: dangerPulse 2s infinite ease-in-out;
+}
+
+@keyframes dangerPulse {
+  0%, 100% { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+  50% { border-color: rgba(239, 68, 68, 0.9); box-shadow: 0 0 28px rgba(239, 68, 68, 0.6); }
+}
+
+.hud-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.hud-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.hud-total-amount {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-main);
+  line-height: 1.1;
+  margin-top: 2px;
+}
+.hud-badge-status {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.hud-badge-status.safe {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.hud-badge-status.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.hud-badge-status.danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* Progress Bar Dinamis */
+.hud-progress-track {
+  width: 100%;
+  height: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 8px 0;
+  position: relative;
+}
+.hud-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s;
+}
+.hud-progress-fill.fill-safe {
+  background: linear-gradient(90deg, #059669, #10b981);
+}
+.hud-progress-fill.fill-warning {
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+.hud-progress-fill.fill-danger {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+}
+
+.hud-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.hud-sub-amount {
+  font-weight: 700;
+  color: var(--text-main);
+}
+.hud-triage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.hud-triage-btn:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================================================
+   AREA KONTEN UTAMA DENGAN TAB SCROLLABLE
+   ========================================================================== */
+.main-viewport {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: calc(var(--bottom-nav-height) + 24px);
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+.main-viewport::-webkit-scrollbar {
+  width: 4px;
+}
+.main-viewport::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* View Sections */
+.tab-view {
+  display: none;
+  padding: 0 16px;
+  animation: fadeInView 0.25s ease-out;
+}
+.tab-view.active {
+  display: block;
+}
+
+@keyframes fadeInView {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Chips Filter Kategori Cepat (Horizontal Scroll Thumb-friendly) */
+.category-filter-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 6px 0 12px 0;
+  scrollbar-width: none;
+}
+.category-filter-scroll::-webkit-scrollbar {
+  display: none;
+}
+.cat-chip {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.cat-chip.active {
+  background: var(--sky);
+  color: #080d15;
+  border-color: var(--sky);
+  font-weight: 700;
+  box-shadow: 0 3px 12px rgba(56, 189, 248, 0.3);
+}
+
+/* List Item Belanja (Keranjang) */
+.cart-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* KARTU ITEM BELANJA MOBILE (F-01, F-02, F-03, F-04) */
+.grocery-item-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+.grocery-item-card:active {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.grocery-item-card.is-optional {
+  border-left: 3px solid var(--amber);
+}
+.grocery-item-card.is-wajib {
+  border-left: 3px solid var(--sky);
+}
+
+.item-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.item-title-col {
+  flex: 1;
+  padding-right: 8px;
+}
+.item-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+.item-meta-sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.item-category-tag {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 10px;
+}
+.priority-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.priority-tag.wajib {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+.priority-tag.opsional {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.item-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.item-delete-btn:hover {
+  color: var(--crimson);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* F-04: INDIKATOR KOMPARATOR HARGA REALTIME VS BULAN LALU */
+.price-comparison-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-top: 2px;
+  width: fit-content;
+}
+
+/* Panah Merah Naik ↑ */
+.badge-price-up {
+  background: rgba(239, 68, 68, 0.16);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+/* Panah Hijau Turun ↓ */
+.badge-price-down {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+/* Tanda Setara = */
+.badge-price-equal {
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+/* Produk Baru ★ */
+.badge-new {
+  background: rgba(168, 85, 247, 0.16);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+/* F-03: Badge Diskon Bertingkat */
+.discount-chip-banner {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.18), rgba(245, 158, 11, 0.12));
+  border: 1px dashed rgba(239, 68, 68, 0.4);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fca5a5;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Baris Bawah: Stepper Kuantitas Ramah Jempol & Subtotal */
+.item-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.qty-stepper-control {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 2px;
+}
+.stepper-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.stepper-btn:active {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.9);
+}
+.stepper-qty-val {
+  min-width: 32px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+  padding: 0 4px;
+}
+.stepper-unit {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding-right: 6px;
+}
+
+.item-pricing-col {
+  text-align: right;
+}
+.item-unit-calc {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.item-line-total {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.3px;
+}
+.item-savings-note {
+  font-size: 10px;
+  color: #34d399;
+  font-weight: 600;
+}
+
+/* Empty State Troli */
+.empty-trolley-card {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--bg-card);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-xl);
+  margin-top: 16px;
+}
+.empty-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--sky);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px auto;
+}
+.empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.empty-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 260px;
+  margin: 0 auto 16px auto;
+}
+
+/* Quick Checkout / Selesai Belanja Bar */
+.cart-checkout-bar {
+  margin-top: 16px;
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.checkout-info-col {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.checkout-info-col strong {
+  color: var(--text-main);
+  font-size: 14px;
+}
+.btn-primary-action {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+  transition: all 0.2s;
+}
+.btn-primary-action:active {
+  transform: scale(0.96);
+}
+
+/* ==========================================================================
+   FLOATING ACTION BUTTON (RAMAH JEMPOL KANAN SAAT DORONG TROLI)
+   ========================================================================== */
+.fab-add-item {
+  position: absolute;
+  right: 20px;
+  bottom: calc(var(--bottom-nav-height) + 16px);
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px -4px var(--emerald-glow), 0 4px 10px rgba(0,0,0,0.4);
+  cursor: pointer;
+  z-index: 85;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.fab-add-item:active {
+  transform: scale(0.9) rotate(45deg);
+}
+
+/* ==========================================================================
+   FLOATING BOTTOM NAVIGATION BAR (DOCK MELAYANG RAMAH JEMPOL)
+   ========================================================================== */
+.bottom-nav-dock {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-nav-height);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 12px 6px 12px;
+  z-index: 95;
+}
+
+.nav-tab-btn {
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 8px 18px;
+  border-radius: 16px;
+  transition: all 0.2s;
+  position: relative;
+  flex: 1;
+}
+
+.nav-tab-btn.active {
+  color: var(--sky);
+}
+
+.nav-tab-btn.active .nav-icon-wrap {
+  transform: translateY(-2px);
+  color: var(--sky);
+}
+
+.nav-tab-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.nav-tab-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 18px);
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--bg-deep);
+}
+
+/* ==========================================================================
+   MODAL BOTTOM SHEET INPUT ITEM (F-01, F-02, F-03, F-04)
+   Touch-Friendly Bottom Sheet dengan keyboard ergonomis
+   ========================================================================== */
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.modal-backdrop.open {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  opacity: 1;
+}
+
+.bottom-sheet {
+  background: var(--bg-surface);
+  border-radius: 28px 28px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 20px 20px calc(24px + env(safe-area-inset-bottom, 0px)) 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.7);
+  animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.sheet-drag-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  margin: 0 auto 14px auto;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.sheet-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+.sheet-close-btn {
+  background: var(--bg-card);
+  border: none;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 14px;
+}
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.form-input-text {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input-text:focus {
+  border-color: var(--sky);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+/* Auto-Suggest Quick List */
+.autosuggest-list {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-top: 6px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.autosuggest-chip {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.autosuggest-chip:active {
+  background: var(--sky);
+  color: #000;
+}
+
+/* Quick Satuan Chips */
+.unit-chips-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.unit-chip-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.unit-chip-btn.active {
+  background: var(--sky);
+  color: #080d15;
+  border-color: var(--sky);
+  font-weight: 800;
+}
+
+/* Form Two-Column Grid */
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Input Angka Besar Ergonomis */
+.large-num-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-prefix {
+  position: absolute;
+  left: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.form-input-large-num {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 12px 12px 34px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-main);
+  outline: none;
+}
+.form-input-large-num:focus {
+  border-color: var(--sky);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+/* Live Comparison Preview Box in Add Modal */
+.modal-comparison-preview {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Presets Diskon Bertingkat Cepat */
+.discount-preset-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.disc-preset-chip {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.disc-preset-chip:active {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* Modal Action Button */
+.btn-submit-item {
+  width: 100%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px var(--emerald-glow);
+  margin-top: 8px;
+}
+.btn-submit-item:active {
+  transform: scale(0.98);
+}
+
+/* ==========================================================================
+   TAB RIWAYAT (F-06: HISTORIS BELANJA BULAN LALU & BENCHMARK)
+   ========================================================================== */
+.history-section-header {
+  margin: 16px 0 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.history-section-title {
+  font-size: 16px;
+  font-weight: 800;
+}
+.history-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-trip-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.trip-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.trip-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+.trip-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.trip-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: var(--radius-md);
+}
+.trip-stat-item {
+  text-align: center;
+}
+.stat-item-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.stat-item-val {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+.trip-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.btn-trip-detail {
+  flex: 1;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--sky);
+  padding: 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-trip-delete {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   TAB ANGGARAN & ANALISIS (F-05: SAFETY CAP & DISTRIBUSI PENGELUARAN)
+   ========================================================================== */
+.budget-setting-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  margin-top: 14px;
+}
+.budget-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.budget-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+
+/* Kategori Distribusi Bar */
+.category-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.cat-breakdown-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cat-breakdown-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+}
+.cat-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cat-progress-bar {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--sky);
+}
+
+/* Backup Data Tools */
+.backup-tools-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.btn-backup-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.btn-backup-card:active {
+  background: var(--bg-card-subtle);
+}
+
+/* ==========================================================================
+   TRIAGE OVER-BUDGET DRAWER (REKOMENDASI CORET BARANG)
+   ========================================================================== */
+.triage-alert-box {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: #fca5a5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.triage-candidate-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.triage-info-col {
+  flex: 1;
+}
+.triage-item-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+.triage-item-saving {
+  font-size: 12px;
+  color: #34d399;
+  font-weight: 600;
+}
+.btn-triage-drop {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Toast Notification */
+.toast-notice {
+  position: absolute;
+  top: 70px;
+  left: 20px;
+  right: 20px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  backdrop-filter: blur(12px);
+  padding: 10px 16px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 300;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.25s ease;
+  pointer-events: none;
+}
+.toast-notice.show {
+  opacity: 1;
+  transform: translateY(0);
+}

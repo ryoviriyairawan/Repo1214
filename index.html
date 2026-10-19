@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Smart Grocery & Budget Safety Tracker | TroliBijak</title>
-  
+
   <!-- PWA Meta Tags -->
-  <meta name="description" content="Aplikasi mobile PWA pelacak belanja supermarket dan pengendali anggaran ramah jempol untuk mahasiswa rantau.">
+  <meta name="description"
+    content="Aplikasi mobile PWA pelacak belanja supermarket dan pengendali anggaran ramah jempol untuk mahasiswa rantau.">
   <meta name="theme-color" content="#0b0f17">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,14 +18,15 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  
+
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
   <!-- Container Khusus Smartphone (Mobile UI max-width 430px) -->
   <div class="desktop-viewport-wrapper" id="appWrapper">
-    
+
 
     <!-- Top App Header -->
     <header class="app-header">
@@ -78,7 +82,7 @@
 
     <!-- AREA VIEWPORT KONTEN UTAMA -->
     <main class="main-viewport" id="mainViewport">
-      
+
       <!-- ============================================================
            TAB 1: BELANJA (TROLI AKTIF)
            ============================================================ -->
@@ -143,14 +147,15 @@
           <p class="budget-card-desc">
             Tentukan jatah belanja bulananmu. Aplikasi akan memberikan peringatan visual merah jika mendekati limit.
           </p>
-          
+
           <div class="form-group" style="margin-bottom: 8px;">
             <div class="large-num-input-wrap">
               <span class="input-prefix">Rp</span>
-              <input type="number" id="inputBudgetCapSetting" class="form-input-large-num" placeholder="500000" step="10000">
+              <input type="number" id="inputBudgetCapSetting" class="form-input-large-num" placeholder="500000"
+                step="10000">
             </div>
           </div>
-          
+
           <div style="display: flex; gap: 8px; margin-top: 10px;">
             <button class="btn-primary-action" id="btnSaveBudgetCap" style="flex: 1; justify-content: center;">
               Simpan Limit Anggaran
@@ -179,15 +184,18 @@
             Perbandingan item troli saat ini terhadap harga resmi bulan lalu:
           </p>
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center;">
-            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; padding: 10px;">
+            <div
+              style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 10px; padding: 10px;">
               <div style="font-size: 18px; font-weight: 800; color: #f87171;" id="summaryPriceUpCount">0</div>
               <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">↑ Harga Naik</div>
             </div>
-            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 10px;">
+            <div
+              style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 10px;">
               <div style="font-size: 18px; font-weight: 800; color: #34d399;" id="summaryPriceDownCount">0</div>
               <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">↓ Harga Turun</div>
             </div>
-            <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 10px; padding: 10px;">
+            <div
+              style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 10px; padding: 10px;">
               <div style="font-size: 18px; font-weight: 800; color: #cbd5e1;" id="summaryPriceEqualCount">0</div>
               <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">= Harga Stabil</div>
             </div>
@@ -211,7 +219,8 @@
               <input type="file" id="fileImportJSON" accept=".json" style="display: none;">
             </label>
           </div>
-          <button id="btnResetDemoData" style="width: 100%; margin-top: 12px; background: transparent; border: 1px dashed var(--border-subtle); color: var(--text-dim); padding: 8px; border-radius: 8px; font-size: 11px; cursor: pointer;">
+          <button id="btnResetDemoData"
+            style="width: 100%; margin-top: 12px; background: transparent; border: 1px dashed var(--border-subtle); color: var(--text-dim); padding: 8px; border-radius: 8px; font-size: 11px; cursor: pointer;">
             Kembalikan ke Contoh Data Demo Rantau
           </button>
         </div>
@@ -262,7 +271,8 @@
           <!-- F-01: Nama Produk & Auto-Suggest Database Bulan Lalu -->
           <div class="form-group">
             <label class="form-label" for="inputItemName">Nama Produk Supermarket</label>
-            <input type="text" id="inputItemName" class="form-input-text" placeholder="Ketik nama produk (contoh: Beras 5kg)..." autocomplete="off" required>
+            <input type="text" id="inputItemName" class="form-input-text"
+              placeholder="Ketik nama produk (contoh: Beras 5kg)..." autocomplete="off" required>
             <div class="autosuggest-list" id="quickAutosuggestList">
               <!-- Sugesti cepat dari katalog bulan lalu -->
             </div>
@@ -310,12 +320,14 @@
             <label class="form-label" for="inputItemUnitPrice">Harga Satuan per Item</label>
             <div class="large-num-input-wrap">
               <span class="input-prefix">Rp</span>
-              <input type="number" id="inputItemUnitPrice" class="form-input-large-num" placeholder="0" min="0" step="500" required>
+              <input type="number" id="inputItemUnitPrice" class="form-input-large-num" placeholder="0" min="0"
+                step="500" required>
             </div>
-            
+
             <!-- F-04: Box Komparasi Realtime Otomatis -->
             <div class="modal-comparison-preview" id="modalComparisonPreview" style="display: none;">
-              <span style="font-size: 11px; color: var(--text-muted);" id="modalCompDetailText">Membandingkan dengan bulan lalu...</span>
+              <span style="font-size: 11px; color: var(--text-muted);" id="modalCompDetailText">Membandingkan dengan
+                bulan lalu...</span>
               <div id="modalCompBadgeContainer"></div>
             </div>
           </div>
@@ -329,7 +341,8 @@
                   <span id="modalMinusIcon"></span>
                 </button>
                 <div style="display: flex; align-items: baseline; gap: 4px;">
-                  <input type="number" id="inputItemQty" class="stepper-qty-val" value="1" min="0.1" step="1" style="background: transparent; border: none; width: 60px; text-align: center; color: white; outline: none;">
+                  <input type="number" id="inputItemQty" class="stepper-qty-val" value="1" min="0.1" step="1"
+                    style="background: transparent; border: none; width: 60px; text-align: center; color: white; outline: none;">
                   <span class="stepper-unit" id="modalSelectedUnitLabel">pcs</span>
                 </div>
                 <button type="button" class="stepper-btn" id="modalQtyPlusBtn">
@@ -342,11 +355,13 @@
           <!-- F-03: Kalkulator Diskon Bertingkat (Single atau Bertumpuk 50%+20%) -->
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <label class="form-label" for="inputItemDiscount" style="margin-bottom: 0;">Diskon (Tunggal atau Bertingkat)</label>
+              <label class="form-label" for="inputItemDiscount" style="margin-bottom: 0;">Diskon (Tunggal atau
+                Bertingkat)</label>
               <span style="font-size: 11px; color: var(--sky); font-weight: 600;">Contoh: 25% atau 50%+20%</span>
             </div>
-            <input type="text" id="inputItemDiscount" class="form-input-text" placeholder="Kosongkan jika normal, atau ketik 25%, 50%+20%, 5000" style="margin-top: 6px;">
-            
+            <input type="text" id="inputItemDiscount" class="form-input-text"
+              placeholder="Kosongkan jika normal, atau ketik 25%, 50%+20%, 5000" style="margin-top: 6px;">
+
             <div class="discount-preset-row">
               <button type="button" class="disc-preset-chip" data-disc="10%">10%</button>
               <button type="button" class="disc-preset-chip" data-disc="25%">25%</button>
@@ -355,19 +370,22 @@
               <button type="button" class="disc-preset-chip" data-disc="30%+10%">30% + 10%</button>
               <button type="button" class="disc-preset-chip" data-disc="5000">Potongan Rp 5.000</button>
             </div>
-            
-            <div id="modalDiscountBreakdown" style="display: none; font-size: 11px; color: #fca5a5; margin-top: 6px; padding: 6px 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+
+            <div id="modalDiscountBreakdown"
+              style="display: none; font-size: 11px; color: #fca5a5; margin-top: 6px; padding: 6px 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
             </div>
           </div>
 
           <!-- Catatan Tambahan (Opsional) -->
           <div class="form-group">
             <label class="form-label" for="inputItemNotes">Catatan / Merek (Opsional)</label>
-            <input type="text" id="inputItemNotes" class="form-input-text" placeholder="Contoh: Beli merek promo, jika habis lewati">
+            <input type="text" id="inputItemNotes" class="form-input-text"
+              placeholder="Contoh: Beli merek promo, jika habis lewati">
           </div>
 
           <!-- F-02: Total Perhitungan Realtime Langsung di Modal -->
-          <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <div
+            style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 12px; color: var(--text-muted);">Estimasi Subtotal Item:</span>
             <strong id="modalCalculatedSubtotal" style="font-size: 18px; color: #38bdf8;">Rp 0</strong>
           </div>
@@ -398,7 +416,8 @@
           <div>
             <strong>Dompetmu Terancam Kering!</strong>
             <p id="triageWarningDetail" style="margin-top: 3px; font-size: 11px;">
-              Coret barang berprioritas 'Opsional' atau camilan di bawah ini dengan 1 ketukan agar total belanja kembali aman di bawah batas dompet.
+              Coret barang berprioritas 'Opsional' atau camilan di bawah ini dengan 1 ketukan agar total belanja kembali
+              aman di bawah batas dompet.
             </p>
           </div>
         </div>
@@ -452,4 +471,5 @@
     }
   </script>
 </body>
+
 </html>

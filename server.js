@@ -2,7 +2,9 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const BASE_DIR = path.join(__dirname, 'Repo1214');
+const BASE_DIR = fs.existsSync(path.join(__dirname, 'Repo1214'))
+  ? path.join(__dirname, 'Repo1214')
+  : __dirname;
 
 const MIME_TYPES = {
   '.html': 'text/html',

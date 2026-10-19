@@ -228,7 +228,7 @@ class DBManager {
     if (!productName) return null;
     const clean = productName.toLowerCase().trim();
     const map = this.getBenchmarkMap();
-    
+
     // Exact match
     if (map[clean]) return map[clean];
 

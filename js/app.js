@@ -76,6 +76,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const summaryPriceDownCount = document.getElementById('summaryPriceDownCount');
   const summaryPriceEqualCount = document.getElementById('summaryPriceEqualCount');
 
+  // Firebase UI Elements
+  const btnCloudStatus = document.getElementById('btnCloudStatus');
+  const headerCloudDot = document.getElementById('headerCloudDot');
+  const headerCloudText = document.getElementById('headerCloudText');
+  const firebaseStatusBadge = document.getElementById('firebaseStatusBadge');
+  const btnOpenFirebaseModal = document.getElementById('btnOpenFirebaseModal');
+  const btnSyncToFirebase = document.getElementById('btnSyncToFirebase');
+  const btnSyncFromFirebase = document.getElementById('btnSyncFromFirebase');
+  const firebaseLastSyncText = document.getElementById('firebaseLastSyncText');
+  const modalFirebaseBackdrop = document.getElementById('modalFirebaseBackdrop');
+  const btnCloseFirebaseModal = document.getElementById('btnCloseFirebaseModal');
+  const formFirebaseConfig = document.getElementById('formFirebaseConfig');
+  const inputFirebaseConfigJson = document.getElementById('inputFirebaseConfigJson');
+  const inputFirebaseUserId = document.getElementById('inputFirebaseUserId');
+  const btnFillFirebaseSample = document.getElementById('btnFillFirebaseSample');
+  const btnDisconnectFirebase = document.getElementById('btnDisconnectFirebase');
+
   // ==========================================================================
   // RENDER UTAMA & EVENT LISTENERS
   // ==========================================================================
@@ -316,10 +333,207 @@ document.addEventListener('DOMContentLoaded', () => {
       "• F-03: Kalkulator Diskon Bertingkat (contoh 50%+20%)\n" +
       "• F-04: Komparator Harga Realtime vs Bulan Lalu (↑ Naik, ↓ Turun, = Stabil)\n" +
       "• F-05: Pengendali Anggaran (Safety Cap) dengan peringatan bahaya\n" +
-      "• F-06: Database Riwayat Belanja resmi antar-bulan\n\n" +
+      "• F-06: Database Riwayat Belanja resmi antar-bulan\n" +
+      "• 🔥 Cloud Firestore: Multi-User (user1, user2, dst.) & Sync Realtime!\n\n" +
       "Ramah jempol saat mendorong troli!"
     );
   });
+
+  // ==========================================================================
+  // FIREBASE CLOUD FIRESTORE EVENT HANDLERS & STATUS
+  // ==========================================================================
+
+  function updateFirebaseUIStatus(statusObj) {
+    if (!statusObj) return;
+    const { status, userId, lastSync, lastError } = statusObj;
+    const displayUser = userId || 'user1';
+
+    if (btnCloudStatus) {
+      btnCloudStatus.className = `btn-cloud-status ${status}`;
+    }
+
+    if (headerCloudText) {
+      if (status === 'connected') {
+        headerCloudText.textContent = `${displayUser} • Cloud`;
+      } else if (status === 'offline') {
+        headerCloudText.textContent = `${displayUser} • Offline`;
+      } else if (status === 'error') {
+        headerCloudText.textContent = `${displayUser} • Error`;
+      } else {
+        headerCloudText.textContent = `${displayUser} • Lokal`;
+      }
+    }
+
+    if (firebaseStatusBadge) {
+      if (status === 'connected') {
+        firebaseStatusBadge.className = 'badge-pill badge-success';
+        firebaseStatusBadge.textContent = 'Cloud Terhubung';
+      } else if (status === 'offline') {
+        firebaseStatusBadge.className = 'badge-pill badge-warning';
+        firebaseStatusBadge.textContent = 'Offline (PWA)';
+      } else if (status === 'error') {
+        firebaseStatusBadge.className = 'badge-pill badge-danger';
+        firebaseStatusBadge.textContent = 'Gagal Konek';
+      } else {
+        firebaseStatusBadge.className = 'badge-pill badge-neutral';
+        firebaseStatusBadge.textContent = 'Mode Lokal';
+      }
+    }
+
+    if (firebaseLastSyncText) {
+      if (lastSync) {
+        const d = new Date(lastSync);
+        const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        firebaseLastSyncText.textContent = `User: [${displayUser}] • Sinkron jam ${timeStr}`;
+      } else {
+        firebaseLastSyncText.textContent = `User: [${displayUser}] • Belum tersinkron ke cloud`;
+      }
+    }
+  }
+
+  function openFirebaseModal() {
+    if (window.firebaseService) {
+      const cfg = window.firebaseService.getConfig();
+      if (inputFirebaseConfigJson) {
+        inputFirebaseConfigJson.value = JSON.stringify(cfg, null, 2);
+      }
+      if (inputFirebaseUserId) {
+        inputFirebaseUserId.value = window.firebaseService.getUserIdSync();
+      }
+    }
+    if (modalFirebaseBackdrop) {
+      modalFirebaseBackdrop.classList.add('active');
+    }
+  }
+
+  function closeFirebaseModal() {
+    if (modalFirebaseBackdrop) {
+      modalFirebaseBackdrop.classList.remove('active');
+    }
+  }
+
+  if (btnCloudStatus) btnCloudStatus.addEventListener('click', openFirebaseModal);
+  if (btnOpenFirebaseModal) btnOpenFirebaseModal.addEventListener('click', openFirebaseModal);
+  if (btnCloseFirebaseModal) btnCloseFirebaseModal.addEventListener('click', closeFirebaseModal);
+  if (modalFirebaseBackdrop) {
+    modalFirebaseBackdrop.addEventListener('click', (e) => {
+      if (e.target === modalFirebaseBackdrop) closeFirebaseModal();
+    });
+  }
+
+  if (btnSyncToFirebase) {
+    btnSyncToFirebase.addEventListener('click', async () => {
+      try {
+        btnSyncToFirebase.disabled = true;
+        btnSyncToFirebase.innerHTML = `<span>Mengunggah...</span>`;
+        const res = await db.syncAllToFirestore();
+        showToast(`Berhasil upload ${res.itemCount} data untuk [${res.userId}] ke Firebase!`, 'check-circle');
+        refreshAppUI();
+      } catch (err) {
+        console.error('Sync to firebase error:', err);
+        showToast(`Gagal upload: ${err.message}`, 'alert-triangle');
+      } finally {
+        btnSyncToFirebase.disabled = false;
+        btnSyncToFirebase.innerHTML = `
+          <span id="uploadCloudIconSlot">${getLucideIcon('cloud-upload', '', 16)}</span>
+          <span>Unggah ke Cloud</span>
+        `;
+      }
+    });
+  }
+
+  if (btnSyncFromFirebase) {
+    btnSyncFromFirebase.addEventListener('click', async () => {
+      try {
+        btnSyncFromFirebase.disabled = true;
+        btnSyncFromFirebase.innerHTML = `<span>Mengunduh...</span>`;
+        const cloudData = await db.downloadAllFromFirestore();
+        showToast(`Data [${cloudData.userId}] berhasil ditarik dari Firebase!`, 'check-circle');
+        refreshAppUI();
+      } catch (err) {
+        console.error('Download from firebase error:', err);
+        showToast(`Gagal tarik data: ${err.message}`, 'alert-triangle');
+      } finally {
+        btnSyncFromFirebase.disabled = false;
+        btnSyncFromFirebase.innerHTML = `
+          <span id="downloadCloudIconSlot">${getLucideIcon('cloud-download', '', 16)}</span>
+          <span>Tarik dari Cloud</span>
+        `;
+      }
+    });
+  }
+
+  if (formFirebaseConfig) {
+    formFirebaseConfig.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const rawJson = inputFirebaseConfigJson.value.trim();
+        let parsedConfig;
+        try {
+          parsedConfig = JSON.parse(rawJson);
+        } catch (jsonErr) {
+          try {
+            parsedConfig = (new Function(`return ${rawJson}`))();
+          } catch (evalErr) {
+            throw new Error('Format JSON konfigurasi tidak valid!');
+          }
+        }
+
+        const customUser = inputFirebaseUserId.value.trim() || 'user1';
+        if (window.firebaseService) {
+          await window.firebaseService.saveConfig(parsedConfig, customUser);
+          showToast(`Tersambung ke Firebase sebagai [${customUser}]!`, 'check-circle');
+          closeFirebaseModal();
+          try {
+            await db.syncAllToFirestore();
+          } catch(e){}
+          refreshAppUI();
+        }
+      } catch (err) {
+        showToast(err.message, 'alert-triangle');
+      }
+    });
+  }
+
+  if (btnDisconnectFirebase) {
+    btnDisconnectFirebase.addEventListener('click', () => {
+      if (confirm('Putus koneksi Firebase dan kembali ke mode penyimpanan lokal?')) {
+        if (window.firebaseService) {
+          window.firebaseService.clearConfig();
+          showToast('Koneksi Firebase diputus. Mode lokal aktif.', 'info');
+          closeFirebaseModal();
+          refreshAppUI();
+        }
+      }
+    });
+  }
+
+  if (btnFillFirebaseSample) {
+    btnFillFirebaseSample.addEventListener('click', () => {
+      if (window.firebaseService) {
+        inputFirebaseConfigJson.value = JSON.stringify(FIREBASE_DEFAULT_CONFIG, null, 2);
+      }
+    });
+  }
+
+  // Hook status observer & realtime sync
+  if (window.firebaseService) {
+    window.firebaseService.onStatusChange(updateFirebaseUIStatus);
+    window.firebaseService.subscribeRealtimeUpdates(
+      (items) => {
+        if (Array.isArray(items) && items.length > 0) {
+          db.saveCart(items);
+          refreshAppUI();
+        }
+      },
+      (newBudget) => {
+        if (newBudget) {
+          localStorage.setItem('trolibijak_budget_cap_v1', newBudget.toString());
+          refreshAppUI();
+        }
+      }
+    );
+  }
 
   // ==========================================================================
   // LOGIKA RENDERING UI APLIKASI
@@ -1057,7 +1271,15 @@ document.addEventListener('DOMContentLoaded', () => {
       'trendIconSlot': ['trending-up', '', 18],
       'backupIconSlot': ['download', '', 18],
       'exportIconSlot': ['download', '', 16],
-      'importIconSlot': ['upload', '', 16]
+      'importIconSlot': ['upload', '', 16],
+      'cloudIconSlot': ['cloud', '', 18],
+      'firebaseGearIconSlot': ['settings', '', 16],
+      'uploadCloudIconSlot': ['cloud-upload', '', 16],
+      'downloadCloudIconSlot': ['cloud-download', '', 16],
+      'firebaseModalIconSlot': ['flame', '', 20],
+      'firebaseCloseIconSlot': ['x', '', 18],
+      'saveFirebaseIconSlot': ['check', '', 18],
+      'guideFlameIconSlot': ['flame', '', 14]
     };
 
     for (const [id, [iconName, extraClass, size]] of Object.entries(iconSlots)) {

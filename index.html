@@ -24,23 +24,55 @@
 </head>
 
 <body>
-  <!-- Container Khusus Smartphone (Mobile UI max-width 430px) -->
+  <!-- Container Aplikasi Web Responsif Penuh (Bukan Kotak HP) -->
   <div class="desktop-viewport-wrapper" id="appWrapper">
 
-
-    <!-- Top App Header -->
+    <!-- Top App Header (Tanpa Garis Pembatas di Atas) -->
     <header class="app-header">
-      <div class="brand-wrapper">
-        <img src="favicon.png" alt="TroliBijak Logo" class="app-logo-img">
-        <div>
-          <h1 class="brand-title">TroliBijak</h1>
-          <p class="brand-subtitle">Smart Grocery & Budget Tracker</p>
+      <div class="app-header-inner">
+        <div class="brand-wrapper">
+          <img src="favicon.png" alt="TroliBijak Logo" class="app-logo-img">
+          <div>
+            <h1 class="brand-title">TroliBijak</h1>
+            <p class="brand-subtitle">Smart Grocery & Realtime Budget Tracker</p>
+          </div>
         </div>
-      </div>
-      <div class="header-actions">
-        <button class="btn-icon-ghost" id="btnQuickInfo" title="Informasi & Bantuan" aria-label="Bantuan">
-          <span id="infoIconSlot"></span>
-        </button>
+
+        <!-- Navigasi Desktop / Tablet (Tampil di Layar Lebar) -->
+        <nav class="desktop-nav-tabs" id="desktopNavTabs">
+          <button type="button" class="desktop-nav-tab active" data-tab="tabBelanja" id="desktopNavBelanja">
+            <span id="desktopNavCartIconSlot"></span>
+            <span>Belanja</span>
+            <span class="desktop-nav-badge" id="desktopNavCartBadge">0</span>
+          </button>
+          <button type="button" class="desktop-nav-tab" data-tab="tabRiwayat" id="desktopNavRiwayat">
+            <span id="desktopNavHistoryIconSlot"></span>
+            <span>Riwayat</span>
+          </button>
+          <button type="button" class="desktop-nav-tab" data-tab="tabAnggaran" id="desktopNavAnggaran">
+            <span id="desktopNavBudgetIconSlot"></span>
+            <span>Anggaran & Akun</span>
+          </button>
+        </nav>
+
+        <div class="header-actions">
+          <!-- Realtime Firestore Cloud Indicator -->
+          <div class="realtime-indicator-pill" id="headerRealtimeIndicator" title="Sinkronisasi Firestore Realtime Aktif">
+            <span class="realtime-pulse-dot" id="headerRealtimeDot"></span>
+            <span id="headerRealtimeText">Realtime</span>
+          </div>
+
+          <!-- User Google Profile / Sign In Pill -->
+          <button type="button" class="header-user-btn" id="btnHeaderAuth" title="Akun Pengguna Google">
+            <span id="headerAuthAvatarSlot"></span>
+            <span id="headerAuthName">Masuk Akun</span>
+          </button>
+
+          <!-- Bantuan & Info -->
+          <button type="button" class="btn-icon-ghost" id="btnQuickInfo" title="Informasi & Bantuan" aria-label="Bantuan">
+            <span id="infoIconSlot"></span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -199,6 +231,29 @@
               <div style="font-size: 18px; font-weight: 800; color: #cbd5e1;" id="summaryPriceEqualCount">0</div>
               <div style="font-size: 10px; color: var(--text-muted); font-weight: 600;">= Harga Stabil</div>
             </div>
+          </div>
+        </div>
+
+        <!-- Akun Google & Cloud Firestore Realtime -->
+        <div class="budget-setting-card">
+          <h2 class="budget-card-title">
+            <span id="cloudCardIconSlot"></span>
+            <span>Akun Google & Sinkronisasi Realtime</span>
+          </h2>
+          <p class="budget-card-desc">
+            Status login akun Google untuk sinkronisasi otomatis berbasis Firestore onSnapshot di semua perangkat:
+          </p>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="tabGoogleStatusIcon"></span>
+              <div>
+                <strong id="tabGoogleUserName" style="font-size: 13px;">Belum Masuk</strong>
+                <div id="tabGoogleUserEmail" style="font-size: 11px; color: var(--text-muted);">Mode Lokal</div>
+              </div>
+            </div>
+            <button type="button" class="btn-primary-action" id="btnTabManageAccount" style="font-size: 11px; padding: 6px 12px;">
+              Kelola Akun
+            </button>
           </div>
         </div>
 
@@ -399,11 +454,10 @@
     </div>
 
     <!-- ============================================================
-         MODAL SHEET: TRIAGE OVER-BUDGET (REKOMENDASI CORET BARANG)
+         MODAL: TRIAGE OVER-BUDGET (REKOMENDASI CORET BARANG)
          ============================================================ -->
     <div class="modal-backdrop" id="modalTriageBackdrop">
       <div class="bottom-sheet" id="modalTriageSheet">
-        <div class="sheet-drag-handle"></div>
         <div class="sheet-header">
           <h2 class="sheet-title" style="color: #f87171;">🚨 Penyelamat Anggaran (Triage)</h2>
           <button class="sheet-close-btn" id="btnCloseTriageModal">
@@ -429,11 +483,10 @@
     </div>
 
     <!-- ============================================================
-         MODAL DETAIL NOTA RIWAYAT BULAN LALU
+         MODAL: DETAIL NOTA RIWAYAT BULAN LALU
          ============================================================ -->
     <div class="modal-backdrop" id="modalReceiptBackdrop">
       <div class="bottom-sheet" id="modalReceiptSheet">
-        <div class="sheet-drag-handle"></div>
         <div class="sheet-header">
           <h2 class="sheet-title" id="receiptModalTitle">Rincian Nota Belanja</h2>
           <button class="sheet-close-btn" id="btnCloseReceiptModal">
@@ -446,6 +499,124 @@
       </div>
     </div>
 
+    <!-- ============================================================
+         MODAL: SIGN IN / LOGIN GOOGLE AUTHORIZATION & REALTIME
+         Setiap kali masuk aplikasi, pengguna bisa login akun Google
+         ============================================================ -->
+    <div class="modal-backdrop" id="modalAuthBackdrop">
+      <div class="bottom-sheet auth-modal-sheet" id="modalAuthSheet">
+        <div class="sheet-header" style="margin-bottom: 8px;">
+          <div class="auth-brand-badge">
+            <img src="favicon.png" alt="TroliBijak Logo" class="auth-logo-img">
+            <div>
+              <h2 class="auth-modal-title">Masuk ke TroliBijak</h2>
+              <p class="auth-modal-subtitle">Google Authorization & Realtime onSnapshot</p>
+            </div>
+          </div>
+          <button type="button" class="sheet-close-btn" id="btnCloseAuthModal" title="Tutup">
+            <span id="authCloseIconSlot"></span>
+          </button>
+        </div>
+
+        <div class="auth-modal-body">
+          <p class="auth-welcome-desc">
+            Nikmati sinkronisasi belanjaan dan batas anggaran kamu secara langsung di semua perangkat (laptop, tablet, & HP) dengan Akun Google.
+          </p>
+
+          <!-- Tombol Resmi Google Sign-In -->
+          <button type="button" class="btn-google-auth" id="btnGoogleSignIn">
+            <span id="googleIconSlot"></span>
+            <span>Lanjutkan dengan Google</span>
+          </button>
+
+          <div class="auth-features-list">
+            <div class="auth-feature-item">
+              <span class="auth-feature-icon">⚡</span>
+              <div>
+                <strong>Sinkronisasi Realtime onSnapshot</strong>
+                <p>Tambah barang di satu layar, langsung muncul seketika di semua perangkat tanpa refresh.</p>
+              </div>
+            </div>
+            <div class="auth-feature-item">
+              <span class="auth-feature-icon">🛡️</span>
+              <div>
+                <strong>Pengendali Anggaran Rantau</strong>
+                <p>Peringatan instan & triage coret barang jika mendekati safety cap anggaran.</p>
+              </div>
+            </div>
+            <div class="auth-feature-item">
+              <span class="auth-feature-icon">📊</span>
+              <div>
+                <strong>Basis Data Pembanding Resmi</strong>
+                <p>Komparasi otomatis inflasi harga naik, turun, atau stabil vs bulan lalu.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="auth-modal-footer">
+            <button type="button" class="btn-guest-mode" id="btnContinueAsGuest">
+              Lanjut Sementara sebagai Tamu (Mode Lokal)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL: DETAIL PROFIL AKUN GOOGLE & STATUS REALTIME
+         ============================================================ -->
+    <div class="modal-backdrop" id="modalAccountBackdrop">
+      <div class="bottom-sheet" id="modalAccountSheet">
+        <div class="sheet-header">
+          <h2 class="sheet-title">Profil Akun Google</h2>
+          <button type="button" class="sheet-close-btn" id="btnCloseAccountModal">
+            <span id="accountCloseIconSlot"></span>
+          </button>
+        </div>
+
+        <div class="account-card-info">
+          <div class="account-avatar-large-wrap" id="accountAvatarWrap">
+            <img id="accountUserAvatarImg" src="" alt="User Avatar" class="account-avatar-large" style="display:none;">
+            <div id="accountUserAvatarFallback" class="account-avatar-fallback">G</div>
+          </div>
+          <div class="account-user-meta">
+            <h3 class="account-user-name" id="accountUserName">Pengguna Google</h3>
+            <p class="account-user-email" id="accountUserEmail">email@gmail.com</p>
+            <div class="account-status-tag" id="accountStatusTag">
+              <span class="realtime-pulse-dot"></span>
+              <span id="accountStatusLabel">Terhubung ke Firestore Realtime</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="account-stats-row">
+          <div class="account-stat-box">
+            <div class="account-stat-val" id="accountStatItems">0</div>
+            <div class="account-stat-lbl">Item Troli</div>
+          </div>
+          <div class="account-stat-box">
+            <div class="account-stat-val" id="accountStatTrips">0</div>
+            <div class="account-stat-lbl">Sesi Riwayat</div>
+          </div>
+          <div class="account-stat-box">
+            <div class="account-stat-val" id="accountStatSync">-</div>
+            <div class="account-stat-lbl">Terakhir Sinkron</div>
+          </div>
+        </div>
+
+        <div class="account-actions-col">
+          <button type="button" class="btn-primary-action" id="btnSwitchGoogleAccount" style="justify-content: center;">
+            <span id="switchIconSlot"></span>
+            <span>Ganti Akun Google</span>
+          </button>
+          <button type="button" class="btn-primary-action" id="btnSignOutAccount" style="justify-content: center; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); box-shadow: none;">
+            <span id="signOutIconSlot"></span>
+            <span>Keluar (Sign Out)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Toast Notifikasi Mobile -->
     <div class="toast-notice" id="appToast">
       <span id="toastIconSlot"></span>
@@ -454,9 +625,15 @@
 
   </div>
 
-  <!-- Scripts -->
+  <!-- Firebase SDKs (Compat v10 untuk Google Auth & Firestore Realtime) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+  <!-- Application Scripts -->
   <script src="js/icons.js"></script>
   <script src="js/calculator.js"></script>
+  <script src="js/firebase-config.js"></script>
   <script src="js/db.js"></script>
   <script src="js/app.js"></script>
 

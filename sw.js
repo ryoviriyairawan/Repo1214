@@ -1,5 +1,5 @@
 // Service Worker untuk Smart Grocery & Budget Safety Tracker (PWA)
-const CACHE_NAME = 'trolibijak-v1.1.0';
+const CACHE_NAME = 'trolibijak-v2.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -43,9 +43,17 @@ self.addEventListener('fetch', (event) => {
   // Hanya proses GET requests
   if (event.request.method !== 'GET') return;
 
-  // Jangan cegat trafik Firebase / Google APIs
+  // Jangan cegat trafik Firebase / Google APIs & Auth
   const url = event.request.url;
-  if (url.includes('firestore.googleapis.com') || url.includes('firebase') || url.includes('gstatic.com')) {
+  if (
+    url.includes('firestore.googleapis.com') ||
+    url.includes('firebase') ||
+    url.includes('gstatic.com') ||
+    url.includes('google') ||
+    url.includes('accounts.google.com') ||
+    url.includes('apis.google.com') ||
+    url.includes('identitytoolkit')
+  ) {
     return;
   }
 

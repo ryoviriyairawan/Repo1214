@@ -1,5 +1,5 @@
 // Service Worker untuk Smart Grocery & Budget Safety Tracker (PWA)
-const CACHE_NAME = 'trolibijak-v3.0.0';
+const CACHE_NAME = 'trolibijak-v3.1.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -61,7 +61,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
+    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
       if (cachedResponse) {
         // Return cached and update in background (Stale-While-Revalidate)
         fetch(event.request)
@@ -89,7 +89,7 @@ self.addEventListener('fetch', (event) => {
     }).catch(() => {
       // HANYA fallback ke index.html untuk navigasi halaman HTML, BUKAN untuk CSS/JS/Gambar!
       if (event.request.mode === 'navigate' || event.request.destination === 'document') {
-        return caches.match('./index.html') || caches.match('./');
+        return caches.match('./index.html', { ignoreSearch: true }) || caches.match('./', { ignoreSearch: true });
       }
       return new Response('Asset not found', { status: 404, statusText: 'Not Found' });
     })

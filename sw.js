@@ -18,7 +18,9 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(ASSETS_TO_CACHE).catch(err => {
+        console.warn('Cache addAll warning:', err);
+      });
     })
   );
   self.skipWaiting();
@@ -30,6 +32,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
+            console.log('Menghapus cache lama:', cache);
             return caches.delete(cache);
           }
         })
@@ -57,7 +60,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
+    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
       if (cachedResponse) {
         // Return cached and update in background (Stale-While-Revalidate)
         fetch(event.request)
@@ -68,13 +71,12 @@ self.addEventListener('fetch', (event) => {
               });
             }
           })
-          .catch(() => {
-            // Abaikan error fetch background
-          });
+          .catch(() => {});
         return cachedResponse;
       }
+
       return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+        if (!networkResponse || networkResponse.status !== 200) {
           return networkResponse;
         }
         const responseToCache = networkResponse.clone();
@@ -84,8 +86,11 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       });
     }).catch(() => {
-      // Fallback offline jika asset tidak ditemukan
-      return caches.match('./index.html');
+      // HANYA fallback ke index.html untuk navigasi halaman HTML, BUKAN untuk CSS/JS/Gambar!
+      if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+        return caches.match('./index.html', { ignoreSearch: true }) || caches.match('./', { ignoreSearch: true });
+      }
+      return new Response('Asset not found', { status: 404, statusText: 'Not Found' });
     })
   );
 });

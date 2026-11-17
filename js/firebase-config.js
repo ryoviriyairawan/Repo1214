@@ -133,9 +133,12 @@ class FirebaseServiceManager {
       this.lastError = null;
 
       window.addEventListener('online', () => {
-        this.status = 'connected';
+        if (this.currentUser) {
+          this.status = 'connected';
+        }
         this.notifyStatusChange();
       });
+
       window.addEventListener('offline', () => {
         this.status = 'offline';
         this.notifyStatusChange();
@@ -515,6 +518,7 @@ class FirebaseServiceManager {
   }
 
   getStatus() {
+    const user = this.getCurrentUser();
     return {
       status: this.status,
       isAuthenticated: this.isAuthenticated(),

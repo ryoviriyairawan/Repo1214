@@ -15,12 +15,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TroliBijak">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="./css/style.css?v=3.1">
 </head>
 
 <body>
@@ -72,23 +72,55 @@
 
     <!-- Top App Header -->
     <header class="app-header">
-      <div class="brand-wrapper">
-        <img src="favicon.png" alt="TroliBijak Logo" class="app-logo-img">
-        <div>
-          <h1 class="brand-title">TroliBijak</h1>
-          <p class="brand-subtitle">Smart Grocery & Budget Tracker</p>
+      <div class="app-header-inner">
+        <div class="brand-wrapper">
+          <img src="./favicon.png" alt="TroliBijak Logo" class="app-logo-img">
+          <div>
+            <h1 class="brand-title">TroliBijak</h1>
+            <p class="brand-subtitle">Smart Grocery & Realtime Budget Tracker</p>
+          </div>
         </div>
-      </div>
-      <div class="header-actions">
-        <!-- Google Authorization & Realtime Badge di Header -->
-        <button class="btn-auth-header" id="btnHeaderAuth" title="Google Authorization & Realtime Sync">
-          <span id="headerAuthIconSlot"></span>
-          <span id="headerAuthLabel">Masuk Google</span>
-          <span class="live-pulse-dot" id="headerLiveDot" style="display: none;"></span>
-        </button>
-        <button class="btn-icon-ghost" id="btnQuickInfo" title="Informasi & Bantuan" aria-label="Bantuan">
-          <span id="infoIconSlot"></span>
-        </button>
+
+        <!-- Navigasi Desktop / Tablet (Tampil di Layar Lebar) -->
+        <nav class="desktop-nav-tabs" id="desktopNavTabs">
+          <button type="button" class="desktop-nav-tab active" data-tab="tabBelanja" id="desktopNavBelanja">
+            <span id="desktopNavCartIconSlot"></span>
+            <span>Belanja</span>
+            <span class="desktop-nav-badge" id="desktopNavCartBadge">0</span>
+          </button>
+          <button type="button" class="desktop-nav-tab" data-tab="tabRiwayat" id="desktopNavRiwayat">
+            <span id="desktopNavHistoryIconSlot"></span>
+            <span>Riwayat</span>
+          </button>
+          <button type="button" class="desktop-nav-tab" data-tab="tabAnggaran" id="desktopNavAnggaran">
+            <span id="desktopNavBudgetIconSlot"></span>
+            <span>Anggaran & Akun</span>
+          </button>
+        </nav>
+
+        <div class="header-actions">
+          <!-- Tombol Switch Light / Dark Mode -->
+          <button type="button" class="btn-theme-toggle" id="btnThemeToggle" title="Ganti Tema Terang/Gelap" aria-label="Ganti Tema">
+            <span id="themeToggleIconSlot"></span>
+          </button>
+
+          <!-- Realtime Firestore Cloud Indicator -->
+          <div class="realtime-indicator-pill" id="headerRealtimeIndicator" title="Sinkronisasi Firestore Realtime Aktif">
+            <span class="realtime-pulse-dot" id="headerRealtimeDot"></span>
+            <span id="headerRealtimeText">Realtime</span>
+          </div>
+
+          <!-- User Google Profile / Sign In Pill -->
+          <button type="button" class="header-user-btn" id="btnHeaderAuth" title="Akun Pengguna Google">
+            <span id="headerAuthAvatarSlot"></span>
+            <span id="headerAuthName">Masuk Akun</span>
+          </button>
+
+          <!-- Bantuan & Info -->
+          <button type="button" class="btn-icon-ghost" id="btnQuickInfo" title="Informasi & Bantuan" aria-label="Bantuan">
+            <span id="infoIconSlot"></span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -135,15 +167,43 @@
            TAB 1: BELANJA (TROLI AKTIF)
            ============================================================ -->
       <section class="tab-view active" id="tabBelanja">
+        <!-- WIDGET LOKASI TOKO SEKITAR (Halaman Pertama) -->
+        <div class="store-location-card" id="storeLocationCard">
+          <div class="store-card-header">
+            <div class="store-header-left">
+              <span id="storePinIconSlot" class="store-icon-badge"></span>
+              <div>
+                <div class="store-header-label">Lokasi Belanja Saat Ini</div>
+                <h3 class="store-current-name" id="storeCurrentName">Indomaret Jabodetabek</h3>
+              </div>
+            </div>
+            <button type="button" class="btn-toggle-store-list" id="btnToggleStoreList">
+              <span id="storeChevronSlot"></span>
+              <span id="storeToggleText">Ganti Toko</span>
+            </button>
+          </div>
+          <div class="store-current-address-row">
+            <span class="store-address-text" id="storeCurrentAddress">Jl. Jabodetabek No. 42 (Dekat Gerbang Utama Kampus)</span>
+            <span class="store-distance-badge" id="storeCurrentDistance">350 m</span>
+          </div>
+          <!-- Dropdown / Accordion Daftar Toko-toko Sekitar -->
+          <div class="stores-expanded-list" id="storesExpandedList" style="display: none;">
+            <div class="stores-list-heading">Pilih Toko Supermarket / Pasar Sekitar:</div>
+            <div class="stores-grid" id="storesGrid">
+              <!-- Toko-toko dirender oleh JS: Indomaret, Toko Pasar Lama, dll -->
+            </div>
+          </div>
+        </div>
+
         <!-- Filter Kategori Cepat (Horizontal Scroll Thumb-friendly) -->
         <div class="category-filter-scroll" id="categoryFilterScroll">
           <button class="cat-chip active" data-category="all">Semua</button>
-          <button class="cat-chip" data-category="Makanan Pokok">Makanan Pokok</button>
-          <button class="cat-chip" data-category="Bumbu & Minyak">Bumbu & Minyak</button>
-          <button class="cat-chip" data-category="Kebersihan & Mandi">Kebersihan</button>
-          <button class="cat-chip" data-category="Camilan">Camilan</button>
-          <button class="cat-chip" data-category="Minuman">Minuman</button>
-          <button class="cat-chip" data-category="Lainnya">Lainnya</button>
+          <button class="cat-chip" data-category="Makanan Pokok">🌾 Makanan Pokok</button>
+          <button class="cat-chip" data-category="Kebersihan & Mandi">🧼 Perlengkapan Mandi</button>
+          <button class="cat-chip" data-category="Bumbu & Minyak">🍳 Bumbu & Minyak</button>
+          <button class="cat-chip" data-category="Camilan">🍿 Camilan</button>
+          <button class="cat-chip" data-category="Minuman">🧃 Minuman</button>
+          <button class="cat-chip" data-category="Lainnya">📦 Lainnya</button>
         </div>
 
         <!-- Daftar Kartu Item Belanja (F-01 s/d F-04) -->
@@ -287,6 +347,29 @@
           </div>
         </div>
 
+        <!-- Akun Google & Cloud Firestore Realtime -->
+        <div class="budget-setting-card">
+          <h2 class="budget-card-title">
+            <span id="cloudCardIconSlot"></span>
+            <span>Akun Google & Sinkronisasi Realtime</span>
+          </h2>
+          <p class="budget-card-desc">
+            Status login akun Google untuk sinkronisasi otomatis berbasis Firestore onSnapshot di semua perangkat:
+          </p>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="tabGoogleStatusIcon"></span>
+              <div>
+                <strong id="tabGoogleUserName" style="font-size: 13px;">Belum Masuk</strong>
+                <div id="tabGoogleUserEmail" style="font-size: 11px; color: var(--text-muted);">Mode Lokal</div>
+              </div>
+            </div>
+            <button type="button" class="btn-primary-action" id="btnTabManageAccount" style="font-size: 11px; padding: 6px 12px;">
+              Kelola Akun
+            </button>
+          </div>
+        </div>
+
         <!-- Backup & Cadangan Database -->
         <div class="budget-setting-card" style="margin-bottom: 24px;">
           <h2 class="budget-card-title">
@@ -353,11 +436,31 @@
         <form id="formAddItem" onsubmit="event.preventDefault();">
           <input type="hidden" id="editItemId" value="">
 
+          <!-- F-01: Pemilihan Cepat Barang per Kategori (Enak Dipilih Tanpa Cari Manual) -->
+          <div class="form-group quick-category-picker-group">
+            <div class="quick-picker-header">
+              <label class="form-label" style="margin-bottom: 0;">Pilih Cepat Barang per Kategori</label>
+              <span class="quick-picker-hint">Ketuk barang untuk isi otomatis</span>
+            </div>
+            <!-- Tab Kategori Mini di Form -->
+            <div class="quick-cat-nav" id="modalQuickCatNav">
+              <button type="button" class="quick-cat-btn active" data-cat="Makanan Pokok">🌾 Makanan</button>
+              <button type="button" class="quick-cat-btn" data-cat="Kebersihan & Mandi">🧼 Mandi & Bersih</button>
+              <button type="button" class="quick-cat-btn" data-cat="Bumbu & Minyak">🍳 Bumbu/Minyak</button>
+              <button type="button" class="quick-cat-btn" data-cat="Minuman">🧃 Minuman</button>
+              <button type="button" class="quick-cat-btn" data-cat="Camilan">🍿 Camilan</button>
+            </div>
+            <!-- Grid Tombol Barang Cepat Terorganisir -->
+            <div class="quick-items-shelf" id="modalQuickItemsShelf">
+              <!-- Item barang sesuai kategori aktif akan dirender oleh JS -->
+            </div>
+          </div>
+
           <!-- F-01: Nama Produk & Auto-Suggest Database Bulan Lalu -->
           <div class="form-group">
             <label class="form-label" for="inputItemName">Nama Produk Supermarket</label>
             <input type="text" id="inputItemName" class="form-input-text"
-              placeholder="Ketik nama produk (contoh: Beras 5kg)..." autocomplete="off" required>
+              placeholder="Ketik nama produk atau pilih dari kategori di atas..." autocomplete="off" required>
             <div class="autosuggest-list" id="quickAutosuggestList">
               <!-- Sugesti cepat dari katalog bulan lalu -->
             </div>
@@ -484,11 +587,10 @@
     </div>
 
     <!-- ============================================================
-         MODAL SHEET: TRIAGE OVER-BUDGET (REKOMENDASI CORET BARANG)
+         MODAL: TRIAGE OVER-BUDGET (REKOMENDASI CORET BARANG)
          ============================================================ -->
     <div class="modal-backdrop" id="modalTriageBackdrop">
       <div class="bottom-sheet" id="modalTriageSheet">
-        <div class="sheet-drag-handle"></div>
         <div class="sheet-header">
           <h2 class="sheet-title" style="color: #f87171;">🚨 Penyelamat Anggaran (Triage)</h2>
           <button class="sheet-close-btn" id="btnCloseTriageModal">
@@ -514,11 +616,10 @@
     </div>
 
     <!-- ============================================================
-         MODAL DETAIL NOTA RIWAYAT BULAN LALU
+         MODAL: DETAIL NOTA RIWAYAT BULAN LALU
          ============================================================ -->
     <div class="modal-backdrop" id="modalReceiptBackdrop">
       <div class="bottom-sheet" id="modalReceiptSheet">
-        <div class="sheet-drag-handle"></div>
         <div class="sheet-header">
           <h2 class="sheet-title" id="receiptModalTitle">Rincian Nota Belanja</h2>
           <button class="sheet-close-btn" id="btnCloseReceiptModal">
@@ -527,6 +628,124 @@
         </div>
         <div id="receiptModalContent" style="font-size: 13px;">
           <!-- Konten nota diisi dinamis -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL: SIGN IN / LOGIN GOOGLE AUTHORIZATION & REALTIME
+         Setiap kali masuk aplikasi, pengguna bisa login akun Google
+         ============================================================ -->
+    <div class="modal-backdrop" id="modalAuthBackdrop">
+      <div class="bottom-sheet auth-modal-sheet" id="modalAuthSheet">
+        <div class="sheet-header" style="margin-bottom: 8px;">
+          <div class="auth-brand-badge">
+            <img src="./favicon.png" alt="TroliBijak Logo" class="auth-logo-img">
+            <div>
+              <h2 class="auth-modal-title">Masuk ke TroliBijak</h2>
+              <p class="auth-modal-subtitle">Google Authorization & Realtime onSnapshot</p>
+            </div>
+          </div>
+          <button type="button" class="sheet-close-btn" id="btnCloseAuthModal" title="Tutup">
+            <span id="authCloseIconSlot"></span>
+          </button>
+        </div>
+
+        <div class="auth-modal-body">
+          <p class="auth-welcome-desc">
+            Nikmati sinkronisasi belanjaan dan batas anggaran kamu secara langsung di semua perangkat (laptop, tablet, & HP) dengan Akun Google.
+          </p>
+
+          <!-- Tombol Resmi Google Sign-In -->
+          <button type="button" class="btn-google-auth" id="btnGoogleSignIn">
+            <span id="googleIconSlot"></span>
+            <span>Lanjutkan dengan Google</span>
+          </button>
+
+          <div class="auth-features-list">
+            <div class="auth-feature-item">
+              <span class="auth-feature-icon">⚡</span>
+              <div>
+                <strong>Sinkronisasi Realtime onSnapshot</strong>
+                <p>Tambah barang di satu layar, langsung muncul seketika di semua perangkat tanpa refresh.</p>
+              </div>
+            </div>
+            <div class="auth-feature-item">
+              <span class="auth-feature-icon">🛡️</span>
+              <div>
+                <strong>Pengendali Anggaran Rantau</strong>
+                <p>Peringatan instan & triage coret barang jika mendekati safety cap anggaran.</p>
+              </div>
+            </div>
+            <div class="auth-feature-item">
+              <span class="auth-feature-icon">📊</span>
+              <div>
+                <strong>Basis Data Pembanding Resmi</strong>
+                <p>Komparasi otomatis inflasi harga naik, turun, atau stabil vs bulan lalu.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="auth-modal-footer">
+            <button type="button" class="btn-guest-mode" id="btnContinueAsGuest">
+              Lanjut Sementara sebagai Tamu (Mode Lokal)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL: DETAIL PROFIL AKUN GOOGLE & STATUS REALTIME
+         ============================================================ -->
+    <div class="modal-backdrop" id="modalAccountBackdrop">
+      <div class="bottom-sheet" id="modalAccountSheet">
+        <div class="sheet-header">
+          <h2 class="sheet-title">Profil Akun Google</h2>
+          <button type="button" class="sheet-close-btn" id="btnCloseAccountModal">
+            <span id="accountCloseIconSlot"></span>
+          </button>
+        </div>
+
+        <div class="account-card-info">
+          <div class="account-avatar-large-wrap" id="accountAvatarWrap">
+            <img id="accountUserAvatarImg" src="" alt="User Avatar" class="account-avatar-large" style="display:none;">
+            <div id="accountUserAvatarFallback" class="account-avatar-fallback">G</div>
+          </div>
+          <div class="account-user-meta">
+            <h3 class="account-user-name" id="accountUserName">Pengguna Google</h3>
+            <p class="account-user-email" id="accountUserEmail">email@gmail.com</p>
+            <div class="account-status-tag" id="accountStatusTag">
+              <span class="realtime-pulse-dot"></span>
+              <span id="accountStatusLabel">Terhubung ke Firestore Realtime</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="account-stats-row">
+          <div class="account-stat-box">
+            <div class="account-stat-val" id="accountStatItems">0</div>
+            <div class="account-stat-lbl">Item Troli</div>
+          </div>
+          <div class="account-stat-box">
+            <div class="account-stat-val" id="accountStatTrips">0</div>
+            <div class="account-stat-lbl">Sesi Riwayat</div>
+          </div>
+          <div class="account-stat-box">
+            <div class="account-stat-val" id="accountStatSync">-</div>
+            <div class="account-stat-lbl">Terakhir Sinkron</div>
+          </div>
+        </div>
+
+        <div class="account-actions-col">
+          <button type="button" class="btn-primary-action" id="btnSwitchGoogleAccount" style="justify-content: center;">
+            <span id="switchIconSlot"></span>
+            <span>Ganti Akun Google</span>
+          </button>
+          <button type="button" class="btn-primary-action" id="btnSignOutAccount" style="justify-content: center; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); box-shadow: none;">
+            <span id="signOutIconSlot"></span>
+            <span>Keluar (Sign Out)</span>
+          </button>
         </div>
       </div>
     </div>
@@ -555,7 +774,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
+        navigator.serviceWorker.register('./sw.js')
           .then(reg => console.log('TroliBijak ServiceWorker terdaftar:', reg.scope))
           .catch(err => console.log('SW registration gagal:', err));
       });

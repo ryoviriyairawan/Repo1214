@@ -40,6 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const editItemId = document.getElementById('editItemId');
   const inputItemName = document.getElementById('inputItemName');
   const quickAutosuggestList = document.getElementById('quickAutosuggestList');
+  const modalQuickCatNav = document.getElementById('modalQuickCatNav');
+  const modalQuickItemsShelf = document.getElementById('modalQuickItemsShelf');
   const selectItemCategory = document.getElementById('selectItemCategory');
   const selectItemPriority = document.getElementById('selectItemPriority');
   const unitChipsGrid = document.getElementById('unitChipsGrid');
@@ -57,6 +59,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputItemNotes = document.getElementById('inputItemNotes');
   const modalCalculatedSubtotal = document.getElementById('modalCalculatedSubtotal');
   const submitBtnText = document.getElementById('submitBtnText');
+
+  // Widget Lokasi Toko Halaman Pertama
+  const storeCurrentName = document.getElementById('storeCurrentName');
+  const storeCurrentAddress = document.getElementById('storeCurrentAddress');
+  const storeCurrentDistance = document.getElementById('storeCurrentDistance');
+  const btnToggleStoreList = document.getElementById('btnToggleStoreList');
+  const storesExpandedList = document.getElementById('storesExpandedList');
+  const storesGrid = document.getElementById('storesGrid');
+  const storeToggleText = document.getElementById('storeToggleText');
 
   // Modal Triage Over-Budget
   const modalTriageBackdrop = document.getElementById('modalTriageBackdrop');
@@ -98,6 +109,34 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnGateGoogleSignIn = document.getElementById('btnGateGoogleSignIn');
   const btnGateGuestSignIn = document.getElementById('btnGateGuestSignIn');
 
+  // Theme Toggle Button
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  const themeToggleIconSlot = document.getElementById('themeToggleIconSlot');
+
+  // Inisialisasi Tema (Dark / Light)
+  applySavedTheme();
+
+  function applySavedTheme() {
+    const currentTheme = db.getTheme();
+    if (currentTheme === 'light') {
+      document.body.classList.add('light-theme');
+      if (themeToggleIconSlot) themeToggleIconSlot.innerHTML = getLucideIcon('moon', '', 18);
+    } else {
+      document.body.classList.remove('light-theme');
+      if (themeToggleIconSlot) themeToggleIconSlot.innerHTML = getLucideIcon('sun', '', 18);
+    }
+  }
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const isLight = document.body.classList.contains('light-theme');
+      const nextTheme = isLight ? 'dark' : 'light';
+      db.setTheme(nextTheme);
+      applySavedTheme();
+      showToast(`Mode ${nextTheme === 'light' ? 'Terang' : 'Gelap'} diaktifkan`, nextTheme === 'light' ? 'sun' : 'moon');
+    });
+  }
+
   // ==========================================================================
   // RENDER UTAMA & EVENT LISTENERS
   // ==========================================================================
@@ -106,8 +145,15 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshAppUI();
   checkMandatoryAuthGate();
 
-  // --- Navigasi Tab Bawah ---
+  // --- Navigasi Tab Bawah (Mobile) & Atas (Desktop) ---
   document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetTab = btn.getAttribute('data-tab');
+      switchTab(targetTab);
+    });
+  });
+
+  document.querySelectorAll('.desktop-nav-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       const targetTab = btn.getAttribute('data-tab');
       switchTab(targetTab);
@@ -117,6 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function switchTab(tabId) {
     state.currentTab = tabId;
     document.querySelectorAll('.nav-tab-btn').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-tab') === tabId);
+    });
+    document.querySelectorAll('.desktop-nav-tab').forEach(b => {
       b.classList.toggle('active', b.getAttribute('data-tab') === tabId);
     });
     document.querySelectorAll('.tab-view').forEach(view => {
@@ -191,6 +240,28 @@ document.addEventListener('DOMContentLoaded', () => {
     updateModalLiveCalculations();
   });
 
+  // --- Tab Navigasi Kategori di Dalam Modal Picker ---
+  if (modalQuickCatNav) {
+    modalQuickCatNav.querySelectorAll('.quick-cat-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalQuickCatNav.querySelectorAll('.quick-cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const selectedCat = btn.getAttribute('data-cat');
+        renderQuickItemsShelf(selectedCat);
+      });
+    });
+  }
+
+  // --- Toggle Buka/Tutup Daftar Toko-Toko Sekitar ---
+  if (btnToggleStoreList) {
+    btnToggleStoreList.addEventListener('click', () => {
+      const isHidden = storesExpandedList.style.display === 'none';
+      storesExpandedList.style.display = isHidden ? 'block' : 'none';
+      storeToggleText.textContent = isHidden ? 'Tutup Toko' : 'Ganti Toko';
+      if (isHidden) renderStoresGrid();
+    });
+  }
+
   // --- Input Realtime Event Listeners di Modal (F-02, F-03, F-04) ---
   inputItemUnitPrice.addEventListener('input', () => {
     updateModalPriceComparison();
@@ -221,13 +292,21 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (state.editingItemId && qty <= 0) {
+      db.removeCartItem(state.editingItemId);
+      showToast(`"${name}" dikeluarkan dari troli`, 'trash-2');
+      closeAddEditModal();
+      refreshAppUI();
+      return;
+    }
+
     const itemData = {
       name,
       category: selectItemCategory.value,
       priority: selectItemPriority.value,
       unit: inputItemUnit.value,
       unitPrice: price,
-      qty,
+      qty: Math.max(0.1, qty),
       discount: inputItemDiscount.value.trim(),
       notes: inputItemNotes.value.trim()
     };
@@ -649,9 +728,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function refreshAppUI() {
     renderSafetyHud();
+    renderStoreLocationHeader();
     if (state.currentTab === 'tabBelanja') renderCartView();
     else if (state.currentTab === 'tabRiwayat') renderHistoryView();
     else if (state.currentTab === 'tabAnggaran') renderBudgetView();
+  }
+
+  // --- RENDER WIDGET LOKASI TOKO DI HALAMAN PERTAMA ---
+  function renderStoreLocationHeader() {
+    if (!storeCurrentName) return;
+    const activeStore = db.getActiveStore();
+    if (activeStore) {
+      storeCurrentName.textContent = activeStore.name;
+      storeCurrentAddress.textContent = activeStore.address;
+      storeCurrentDistance.textContent = activeStore.distance || 'Sekitar';
+    }
+  }
+
+  function renderStoresGrid() {
+    if (!storesGrid) return;
+    const stores = db.getStores();
+    const activeStore = db.getActiveStore();
+    storesGrid.innerHTML = '';
+
+    stores.forEach(store => {
+      const isSelected = activeStore && activeStore.id === store.id;
+      const card = document.createElement('div');
+      card.className = `store-item-card ${isSelected ? 'active' : ''}`;
+      card.innerHTML = `
+        <div class="store-item-top">
+          <span class="store-item-title">${escapeHtml(store.name)}</span>
+          <span class="store-item-badge">${escapeHtml(store.type)}</span>
+        </div>
+        <div class="store-item-address">${escapeHtml(store.address)}</div>
+        <div class="store-item-footer">
+          <span style="color: var(--sky); font-weight: 600;">${escapeHtml(store.priceTag || 'Harga Standar')}</span>
+          <strong style="color: #34d399;">${escapeHtml(store.distance || '')} • ${escapeHtml(store.hours || '')}</strong>
+        </div>
+      `;
+      card.addEventListener('click', () => {
+        db.setActiveStore(store.id);
+        renderStoreLocationHeader();
+        renderStoresGrid();
+        // Refresh catalog shelf jika modal terbuka atau render ulang troli
+        const activeCat = modalQuickCatNav ? (modalQuickCatNav.querySelector('.quick-cat-btn.active')?.getAttribute('data-cat') || 'Makanan Pokok') : 'Makanan Pokok';
+        renderQuickItemsShelf(activeCat);
+        storesExpandedList.style.display = 'none';
+        storeToggleText.textContent = 'Ganti Toko';
+        showToast(`Lokasi belanja diatur: ${store.name} (${store.priceTag})`, 'map-pin');
+      });
+      storesGrid.appendChild(card);
+    });
   }
 
   // --- F-05: RENDER STICKY SAFETY HUD ---
@@ -692,9 +819,15 @@ document.addEventListener('DOMContentLoaded', () => {
       hudTriageContainer.style.display = 'none';
     }
 
-    // Update Badge Counter Keranjang Navigasi
-    navCartBadge.textContent = cart.length;
-    navCartBadge.style.display = cart.length > 0 ? 'flex' : 'none';
+    // Update Badge Counter Keranjang Navigasi (Mobile & Desktop)
+    if (navCartBadge) {
+      navCartBadge.textContent = cart.length;
+      navCartBadge.style.display = cart.length > 0 ? 'flex' : 'none';
+    }
+    if (desktopNavCartBadge) {
+      desktopNavCartBadge.textContent = cart.length;
+      desktopNavCartBadge.style.display = cart.length > 0 ? 'inline-flex' : 'none';
+    }
 
     // Getar (Haptic Feedback) jika over budget di perangkat mobile
     if (safety.isOverBudget && 'vibrate' in navigator) {
@@ -755,19 +888,22 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = `grocery-item-card ${item.priority === 'opsional' ? 'is-optional' : 'is-wajib'}`;
       card.id = `card-${item.id}`;
 
-      // Markup F-04: Komparator Harga Visual
+      // Markup F-04: Komparator Harga Visual dengan Tanggal & Harga Patokan
       let compBadgeHtml = '';
+      const benchDateStr = benchmark?.date ? ` (${benchmark.date})` : '';
+      const benchPriceStr = benchmark?.lastPrice ? ` [Rp ${benchmark.lastPrice.toLocaleString('id-ID')}]` : '';
+
       if (comp.status === 'up') {
         compBadgeHtml = `<span class="price-comparison-badge badge-price-up" title="${comp.tooltip}">
-          ${getLucideIcon('trending-up', '', 13)} ${comp.label} vs Bulan Lalu
+          ${getLucideIcon('trending-up', '', 13)} ${comp.label} vs Bulan Lalu${benchPriceStr}${benchDateStr}
         </span>`;
       } else if (comp.status === 'down') {
         compBadgeHtml = `<span class="price-comparison-badge badge-price-down" title="${comp.tooltip}">
-          ${getLucideIcon('trending-down', '', 13)} ${comp.label} vs Bulan Lalu (PROMO!)
+          ${getLucideIcon('trending-down', '', 13)} ${comp.label} vs Bulan Lalu (PROMO!)${benchPriceStr}${benchDateStr}
         </span>`;
       } else if (comp.status === 'equal') {
         compBadgeHtml = `<span class="price-comparison-badge badge-price-equal" title="${comp.tooltip}">
-          ${getLucideIcon('equal', '', 13)} ${comp.label} (Harga Sama)
+          ${getLucideIcon('equal', '', 13)} ${comp.label} (Harga Sama)${benchPriceStr}${benchDateStr}
         </span>`;
       } else {
         compBadgeHtml = `<span class="price-comparison-badge badge-new" title="${comp.tooltip}">
@@ -866,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- F-02: Perubahan Kuantitas Realtime ---
+  // --- F-02: Perubahan Kuantitas Realtime (Langsung Hapus Tanpa Konfirmasi jika 0) ---
   function handleItemQtyChange(itemId, delta) {
     const cart = db.getCart();
     const item = cart.find(it => it.id === itemId);
@@ -1066,8 +1202,9 @@ document.addEventListener('DOMContentLoaded', () => {
     modalComparisonPreview.style.display = 'none';
     modalDiscountBreakdown.style.display = 'none';
 
-    // Populate sugesti cepat dari benchmark
+    // Populate sugesti cepat dari benchmark & shelf kategori
     populateAutosuggestChips();
+    renderQuickItemsShelf('Makanan Pokok');
 
     if (item) {
       state.editingItemId = item.id;
@@ -1082,6 +1219,14 @@ document.addEventListener('DOMContentLoaded', () => {
       inputItemQty.value = item.qty;
       inputItemDiscount.value = item.discount || '';
       inputItemNotes.value = item.notes || '';
+
+      // Update active cat tab in shelf
+      if (modalQuickCatNav) {
+        modalQuickCatNav.querySelectorAll('.quick-cat-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-cat') === item.category);
+        });
+        renderQuickItemsShelf(item.category);
+      }
 
       // Set active unit chip
       unitChipsGrid.querySelectorAll('.unit-chip-btn').forEach(b => {
@@ -1102,6 +1247,12 @@ document.addEventListener('DOMContentLoaded', () => {
       unitChipsGrid.querySelectorAll('.unit-chip-btn').forEach(b => {
         b.classList.toggle('active', b.getAttribute('data-unit') === 'pcs');
       });
+      // Default to first cat tab
+      if (modalQuickCatNav) {
+        modalQuickCatNav.querySelectorAll('.quick-cat-btn').forEach((btn, idx) => {
+          btn.classList.toggle('active', idx === 0);
+        });
+      }
       updateModalLiveCalculations();
     }
 
@@ -1112,6 +1263,34 @@ document.addEventListener('DOMContentLoaded', () => {
   function closeAddEditModal() {
     modalAddItemBackdrop.classList.remove('open');
     state.editingItemId = null;
+  }
+
+  // Render Shelf Barang Berdasarkan Kategori untuk Pemilihan Praktis
+  function renderQuickItemsShelf(category) {
+    if (!modalQuickItemsShelf) return;
+    const catalog = db.getCatalogByCategory(category);
+    modalQuickItemsShelf.innerHTML = '';
+
+    if (catalog.length === 0) {
+      modalQuickItemsShelf.innerHTML = '<div style="font-size: 11px; color: var(--text-dim); padding: 8px;">Ketik manual di bawah untuk barang baru</div>';
+      return;
+    }
+
+    catalog.forEach(item => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'quick-shelf-item';
+      const dateLabel = item.date ? `<div style="font-size: 9px; color: var(--text-dim);">${escapeHtml(item.date)}</div>` : '';
+      btn.innerHTML = `
+        <span class="quick-shelf-item-name">${escapeHtml(item.name)}</span>
+        <span class="quick-shelf-item-price">${Calculator.formatRupiah(item.lastPrice)} / ${escapeHtml(item.unit)}</span>
+        ${dateLabel}
+      `;
+      btn.addEventListener('click', () => {
+        applyBenchmarkSuggestion(item);
+      });
+      modalQuickItemsShelf.appendChild(btn);
+    });
   }
 
   function populateAutosuggestChips() {
@@ -1176,7 +1355,8 @@ document.addEventListener('DOMContentLoaded', () => {
     modalComparisonPreview.style.display = 'flex';
 
     if (benchmark && benchmark.lastPrice > 0) {
-      modalCompDetailText.innerHTML = `Bulan lalu: <strong>${Calculator.formatRupiah(benchmark.lastPrice)}</strong>`;
+      const datePart = benchmark.date ? ` (${benchmark.date})` : '';
+      modalCompDetailText.innerHTML = `Harga patokan: <strong>${Calculator.formatRupiah(benchmark.lastPrice)}</strong>${datePart}`;
     } else {
       modalCompDetailText.innerHTML = `Belum ada riwayat harga bulan lalu`;
     }
@@ -1365,6 +1545,17 @@ document.addEventListener('DOMContentLoaded', () => {
       'navCartIconSlot': ['shopping-cart', '', 22],
       'navHistoryIconSlot': ['history', '', 22],
       'navBudgetIconSlot': ['wallet', '', 22],
+      'desktopNavCartIconSlot': ['shopping-cart', '', 16],
+      'desktopNavHistoryIconSlot': ['history', '', 16],
+      'desktopNavBudgetIconSlot': ['wallet', '', 16],
+      'headerAuthAvatarSlot': ['google', '', 16],
+      'googleIconSlot': ['google', '', 20],
+      'authCloseIconSlot': ['x', '', 18],
+      'accountCloseIconSlot': ['x', '', 18],
+      'switchIconSlot': ['refresh-cw', '', 16],
+      'signOutIconSlot': ['log-out', '', 16],
+      'cloudCardIconSlot': ['cloud', '', 18],
+      'tabGoogleStatusIcon': ['google', '', 22],
       'modalCloseIconSlot': ['x', '', 18],
       'modalMinusIcon': ['minus', '', 16],
       'modalPlusIcon': ['plus', '', 16],
@@ -1386,7 +1577,10 @@ document.addEventListener('DOMContentLoaded', () => {
       'gateLockIconSlot': ['lock', '', 14],
       'gateGoogleIconSlot': ['google', '', 18],
       'gateGuestIconSlot': ['user', '', 16],
-      'gateShieldIconSlot': ['shield-check', '', 14]
+      'gateShieldIconSlot': ['shield-check', '', 14],
+      'storePinIconSlot': ['store', '', 18],
+      'storeChevronSlot': ['map-pin', '', 14],
+      'themeToggleIconSlot': ['sun', '', 18]
     };
 
     for (const [id, [iconName, extraClass, size]] of Object.entries(iconSlots)) {

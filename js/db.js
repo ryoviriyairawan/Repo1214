@@ -7,10 +7,12 @@ const STORAGE_KEYS = {
   BUDGET: 'trolibijak_budget_cap_v1',
   BENCHMARKS: 'trolibijak_price_benchmarks_v1',
   STORES: 'trolibijak_stores_v1',
-  ACTIVE_STORE: 'trolibijak_active_store_v1'
+  ACTIVE_STORE: 'trolibijak_active_store_v1',
+  THEME: 'trolibijak_theme_mode_v1'
 };
 
-// Data Daftar Toko Belanja Sekitar (Sesuai Permintaan: Indomaret Jl. Jabodetabek & Toko Pasar Lama)
+// Data Daftar Toko Belanja Sekitar (Sesuai Permintaan: Indomaret Jl. Jabodetabek, Toko Pasar Lama, dll)
+// Masing-masing toko memiliki multiplier harga unik agar harga di tiap toko berbeda nyata
 const DEFAULT_STORES = [
   {
     id: 'store-1',
@@ -19,7 +21,9 @@ const DEFAULT_STORES = [
     distance: '350 m',
     hours: '24 Jam',
     type: 'Minimarket Rekomendasi',
-    note: 'Sedia sembako, minuman dingin & kebutuhan harian'
+    note: 'Sedia sembako, minuman dingin & kebutuhan harian',
+    priceMultiplier: 1.0,
+    priceTag: 'Harga Standar'
   },
   {
     id: 'store-2',
@@ -28,7 +32,9 @@ const DEFAULT_STORES = [
     distance: '800 m',
     hours: '06:00 - 17:00',
     type: 'Pasar Tradisional Murah',
-    note: 'Harga beras, telur & bumbu dapur grosir murah'
+    note: 'Harga beras, telur & bumbu dapur grosir murah',
+    priceMultiplier: 0.88,
+    priceTag: 'Diskon Grosir ~12% Lebih Murah'
   },
   {
     id: 'store-3',
@@ -37,7 +43,9 @@ const DEFAULT_STORES = [
     distance: '500 m',
     hours: '07:00 - 23:00',
     type: 'Minimarket Promo Mingguan',
-    note: 'Promo mingguan sabun mandi, deterjen & camilan'
+    note: 'Promo mingguan sabun mandi, deterjen & camilan',
+    priceMultiplier: 1.03,
+    priceTag: 'Harga Reguler'
   },
   {
     id: 'store-4',
@@ -46,55 +54,57 @@ const DEFAULT_STORES = [
     distance: '1.2 km',
     hours: '08:00 - 22:00',
     type: 'Supermarket Lengkap & Segar',
-    note: 'Lengkap untuk belanja bulanan & bahan segar'
+    note: 'Lengkap untuk belanja bulanan & bahan segar berkualitas',
+    priceMultiplier: 0.95,
+    priceTag: 'Harga Segar Hemat ~5%'
   }
 ];
 
-// Data Patokan Realistis & Katalog Belanja Cepat per Kategori
+// Data Patokan Realistis & Katalog Belanja Cepat per Kategori dengan Tanggal Patokan Resmi
 const INITIAL_BENCHMARK_CATALOG = [
   // --- MAKANAN POKOK ---
-  { name: 'Beras Premium 5kg', category: 'Makanan Pokok', unit: 'pack', lastPrice: 72000, date: '2026-09-15' },
-  { name: 'Telur Ayam Negeri 1kg', category: 'Makanan Pokok', unit: 'kg', lastPrice: 28000, date: '2026-09-15' },
-  { name: 'Indomie Goreng (Pack)', category: 'Makanan Pokok', unit: 'pcs', lastPrice: 3100, date: '2026-09-15' },
-  { name: 'Indomie Ayam Bawang', category: 'Makanan Pokok', unit: 'pcs', lastPrice: 3100, date: '2026-09-15' },
-  { name: 'Tempe & Tahu Segar', category: 'Makanan Pokok', unit: 'pack', lastPrice: 8000, date: '2026-09-15' },
-  { name: 'Roti Tawar Gandum', category: 'Makanan Pokok', unit: 'pack', lastPrice: 16000, date: '2026-09-15' },
-  { name: 'Kornet Sapi Pronas 198g', category: 'Makanan Pokok', unit: 'kaleng', lastPrice: 24500, date: '2026-09-15' },
-  { name: 'Sarden ABC Saus Tomat 155g', category: 'Makanan Pokok', unit: 'kaleng', lastPrice: 11000, date: '2026-09-15' },
+  { name: 'Beras Premium 5kg', category: 'Makanan Pokok', unit: 'pack', lastPrice: 72000, date: '15 September 2026' },
+  { name: 'Telur Ayam Negeri 1kg', category: 'Makanan Pokok', unit: 'kg', lastPrice: 28000, date: '15 September 2026' },
+  { name: 'Indomie Goreng (Pack)', category: 'Makanan Pokok', unit: 'pcs', lastPrice: 3100, date: '15 September 2026' },
+  { name: 'Indomie Ayam Bawang', category: 'Makanan Pokok', unit: 'pcs', lastPrice: 3100, date: '15 September 2026' },
+  { name: 'Tempe & Tahu Segar', category: 'Makanan Pokok', unit: 'pack', lastPrice: 8000, date: '15 September 2026' },
+  { name: 'Roti Tawar Gandum', category: 'Makanan Pokok', unit: 'pack', lastPrice: 16000, date: '15 September 2026' },
+  { name: 'Kornet Sapi Pronas 198g', category: 'Makanan Pokok', unit: 'kaleng', lastPrice: 24500, date: '15 September 2026' },
+  { name: 'Sarden ABC Saus Tomat 155g', category: 'Makanan Pokok', unit: 'kaleng', lastPrice: 11000, date: '15 September 2026' },
 
   // --- PERLENGKAPAN MANDI & KEBERSIHAN ---
-  { name: 'Sabun Mandi Dettol Refill 410ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 22000, date: '2026-09-15' },
-  { name: 'Sabun Mandi Lifebuoy Bar', category: 'Kebersihan & Mandi', unit: 'pcs', lastPrice: 4500, date: '2026-09-15' },
-  { name: 'Shampoo Sunsilk 160ml', category: 'Kebersihan & Mandi', unit: 'botol', lastPrice: 21000, date: '2026-09-15' },
-  { name: 'Pasta Gigi Pepsodent 190g', category: 'Kebersihan & Mandi', unit: 'pcs', lastPrice: 14000, date: '2026-09-15' },
-  { name: 'Sikat Gigi Formula 3s', category: 'Kebersihan & Mandi', unit: 'pack', lastPrice: 12000, date: '2026-09-15' },
-  { name: 'Deterjen Rinso Molto 770g', category: 'Kebersihan & Mandi', unit: 'pack', lastPrice: 19500, date: '2026-09-15' },
-  { name: 'Sabun Cuci Piring Sunlight 700ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 13500, date: '2026-09-15' },
-  { name: 'Pewangi Pakaian Downy 650ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 18000, date: '2026-09-15' },
-  { name: 'Pembersih Lantai Wipol 750ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 16000, date: '2026-09-15' },
-  { name: 'Tisu Wajah Paseo 250s', category: 'Kebersihan & Mandi', unit: 'pack', lastPrice: 14500, date: '2026-09-15' },
+  { name: 'Sabun Mandi Dettol Refill 410ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 22000, date: '15 September 2026' },
+  { name: 'Sabun Mandi Lifebuoy Bar', category: 'Kebersihan & Mandi', unit: 'pcs', lastPrice: 4500, date: '15 September 2026' },
+  { name: 'Shampoo Sunsilk 160ml', category: 'Kebersihan & Mandi', unit: 'botol', lastPrice: 21000, date: '15 September 2026' },
+  { name: 'Pasta Gigi Pepsodent 190g', category: 'Kebersihan & Mandi', unit: 'pcs', lastPrice: 14000, date: '15 September 2026' },
+  { name: 'Sikat Gigi Formula 3s', category: 'Kebersihan & Mandi', unit: 'pack', lastPrice: 12000, date: '15 September 2026' },
+  { name: 'Deterjen Rinso Molto 770g', category: 'Kebersihan & Mandi', unit: 'pack', lastPrice: 19500, date: '15 September 2026' },
+  { name: 'Sabun Cuci Piring Sunlight 700ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 13500, date: '15 September 2026' },
+  { name: 'Pewangi Pakaian Downy 650ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 18000, date: '15 September 2026' },
+  { name: 'Pembersih Lantai Wipol 750ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 16000, date: '15 September 2026' },
+  { name: 'Tisu Wajah Paseo 250s', category: 'Kebersihan & Mandi', unit: 'pack', lastPrice: 14500, date: '15 September 2026' },
 
   // --- BUMBU & MINYAK ---
-  { name: 'Minyak Goreng Sania 2L', category: 'Bumbu & Minyak', unit: 'liter', lastPrice: 33500, date: '2026-09-15' },
-  { name: 'Bawang Merah Brebes 250g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 11000, date: '2026-09-15' },
-  { name: 'Bawang Putih 250g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 10500, date: '2026-09-15' },
-  { name: 'Kecap Manis Bango 520ml', category: 'Bumbu & Minyak', unit: 'pouch', lastPrice: 24000, date: '2026-09-15' },
-  { name: 'Saus Sambal ABC 275ml', category: 'Bumbu & Minyak', unit: 'botol', lastPrice: 12500, date: '2026-09-15' },
-  { name: 'Garam Dapur Beriodium 250g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 4000, date: '2026-09-15' },
-  { name: 'Royco Kaldu Ayam 230g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 10500, date: '2026-09-15' },
+  { name: 'Minyak Goreng Sania 2L', category: 'Bumbu & Minyak', unit: 'liter', lastPrice: 33500, date: '15 September 2026' },
+  { name: 'Bawang Merah Brebes 250g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 11000, date: '15 September 2026' },
+  { name: 'Bawang Putih 250g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 10500, date: '15 September 2026' },
+  { name: 'Kecap Manis Bango 520ml', category: 'Bumbu & Minyak', unit: 'pouch', lastPrice: 24000, date: '15 September 2026' },
+  { name: 'Saus Sambal ABC 275ml', category: 'Bumbu & Minyak', unit: 'botol', lastPrice: 12500, date: '15 September 2026' },
+  { name: 'Garam Dapur Beriodium 250g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 4000, date: '15 September 2026' },
+  { name: 'Royco Kaldu Ayam 230g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 10500, date: '15 September 2026' },
 
   // --- MINUMAN ---
-  { name: 'Susu UHT Full Cream 1L', category: 'Minuman', unit: 'liter', lastPrice: 18500, date: '2026-09-15' },
-  { name: 'Kopi Instan Sachet 10s', category: 'Minuman', unit: 'pack', lastPrice: 15000, date: '2026-09-15' },
-  { name: 'Teh Celup Sariwangi 25s', category: 'Minuman', unit: 'pack', lastPrice: 7500, date: '2026-09-15' },
-  { name: 'Air Mineral Aqua 1500ml', category: 'Minuman', unit: 'botol', lastPrice: 6000, date: '2026-09-15' },
-  { name: 'Teh Botol Sosro 450ml', category: 'Minuman', unit: 'botol', lastPrice: 5500, date: '2026-09-15' },
+  { name: 'Susu UHT Full Cream 1L', category: 'Minuman', unit: 'liter', lastPrice: 18500, date: '15 September 2026' },
+  { name: 'Kopi Instan Sachet 10s', category: 'Minuman', unit: 'pack', lastPrice: 15000, date: '15 September 2026' },
+  { name: 'Teh Celup Sariwangi 25s', category: 'Minuman', unit: 'pack', lastPrice: 7500, date: '15 September 2026' },
+  { name: 'Air Mineral Aqua 1500ml', category: 'Minuman', unit: 'botol', lastPrice: 6000, date: '15 September 2026' },
+  { name: 'Teh Botol Sosro 450ml', category: 'Minuman', unit: 'botol', lastPrice: 5500, date: '15 September 2026' },
 
   // --- CAMILAN ---
-  { name: 'Chitato Sapi Panggang 68g', category: 'Camilan', unit: 'bungkus', lastPrice: 11500, date: '2026-09-15' },
-  { name: 'Biskuit Roma Kelapa 300g', category: 'Camilan', unit: 'pack', lastPrice: 10000, date: '2026-09-15' },
-  { name: 'Oreo Vanilla Roll 123g', category: 'Camilan', unit: 'bungkus', lastPrice: 9500, date: '2026-09-15' },
-  { name: 'Kacang Kulit Garuda 200g', category: 'Camilan', unit: 'pack', lastPrice: 14000, date: '2026-09-15' }
+  { name: 'Chitato Sapi Panggang 68g', category: 'Camilan', unit: 'bungkus', lastPrice: 11500, date: '15 September 2026' },
+  { name: 'Biskuit Roma Kelapa 300g', category: 'Camilan', unit: 'pack', lastPrice: 10000, date: '15 September 2026' },
+  { name: 'Oreo Vanilla Roll 123g', category: 'Camilan', unit: 'bungkus', lastPrice: 9500, date: '15 September 2026' },
+  { name: 'Kacang Kulit Garuda 200g', category: 'Camilan', unit: 'pack', lastPrice: 14000, date: '15 September 2026' }
 ];
 
 // Troli Awal Demo (Menampilkan variasi harga naik, turun, stabil & diskon bertingkat)
@@ -167,20 +177,20 @@ const INITIAL_DEMO_HISTORY = [
     itemCount: 14,
     totalSavings: 42500,
     items: [
-      { name: 'Beras Premium 5kg', qty: 1, unit: 'pack', unitPrice: 72000, finalTotal: 72000, category: 'Makanan Pokok' },
-      { name: 'Minyak Goreng Sania 2L', qty: 1, unit: 'liter', unitPrice: 33500, finalTotal: 33500, category: 'Bumbu & Minyak' },
-      { name: 'Telur Ayam Negeri 1kg', qty: 1, unit: 'kg', unitPrice: 28000, finalTotal: 28000, category: 'Makanan Pokok' },
-      { name: 'Indomie Goreng (Pack)', qty: 15, unit: 'pcs', unitPrice: 3100, finalTotal: 46500, category: 'Makanan Pokok' },
-      { name: 'Susu UHT Full Cream 1L', qty: 2, unit: 'liter', unitPrice: 18500, finalTotal: 37000, category: 'Minuman' },
-      { name: 'Deterjen Rinso Molto 770g', qty: 1, unit: 'pack', unitPrice: 19500, finalTotal: 19500, category: 'Kebersihan & Mandi' },
-      { name: 'Sabun Cuci Piring Sunlight 700ml', qty: 1, unit: 'pouch', unitPrice: 13500, finalTotal: 13500, category: 'Kebersihan & Mandi' },
-      { name: 'Sabun Mandi Dettol Refill 410ml', qty: 1, unit: 'pouch', unitPrice: 22000, finalTotal: 22000, category: 'Kebersihan & Mandi' },
-      { name: 'Pasta Gigi Pepsodent 190g', qty: 1, unit: 'pcs', unitPrice: 14000, finalTotal: 14000, category: 'Kebersihan & Mandi' },
-      { name: 'Bawang Merah Brebes 250g', qty: 1, unit: 'pack', unitPrice: 11000, finalTotal: 11000, category: 'Bumbu & Minyak' },
-      { name: 'Bawang Putih 250g', qty: 1, unit: 'pack', unitPrice: 10500, finalTotal: 10500, category: 'Bumbu & Minyak' },
-      { name: 'Kopi Instan Sachet 10s', qty: 2, unit: 'pack', unitPrice: 15000, finalTotal: 30000, category: 'Minuman' },
-      { name: 'Kecap Manis Bango 520ml', qty: 1, unit: 'pouch', unitPrice: 24000, finalTotal: 24000, category: 'Bumbu & Minyak' },
-      { name: 'Chitato Sapi Panggang 68g', qty: 2, unit: 'bungkus', unitPrice: 11500, finalTotal: 23000, category: 'Camilan' }
+      { name: 'Beras Premium 5kg', category: 'Makanan Pokok', unit: 'pack', qty: 1, unitPrice: 72000, discount: '', finalTotal: 72000, priority: 'wajib' },
+      { name: 'Minyak Goreng Sania 2L', category: 'Bumbu & Minyak', unit: 'liter', qty: 1, unitPrice: 33500, discount: '', finalTotal: 33500, priority: 'wajib' },
+      { name: 'Telur Ayam Negeri 1kg', category: 'Makanan Pokok', unit: 'kg', qty: 1, unitPrice: 28000, discount: '', finalTotal: 28000, priority: 'wajib' },
+      { name: 'Indomie Goreng (Pack)', category: 'Makanan Pokok', unit: 'pcs', qty: 10, unitPrice: 3100, discount: '', finalTotal: 31000, priority: 'wajib' },
+      { name: 'Susu UHT Full Cream 1L', category: 'Minuman', unit: 'liter', qty: 2, unitPrice: 18500, discount: '', finalTotal: 37000, priority: 'opsional' },
+      { name: 'Deterjen Rinso Molto 770g', category: 'Kebersihan & Mandi', unit: 'pack', qty: 1, unitPrice: 19500, discount: '', finalTotal: 19500, priority: 'wajib' },
+      { name: 'Sabun Mandi Dettol Refill 410ml', category: 'Kebersihan & Mandi', unit: 'pouch', qty: 2, unitPrice: 22000, discount: '20%', finalTotal: 35200, priority: 'wajib' },
+      { name: 'Sabun Cuci Piring Sunlight 700ml', category: 'Kebersihan & Mandi', unit: 'pouch', qty: 1, unitPrice: 13500, discount: '', finalTotal: 13500, priority: 'wajib' },
+      { name: 'Pasta Gigi Pepsodent 190g', category: 'Kebersihan & Mandi', unit: 'pcs', qty: 1, unitPrice: 14000, discount: '', finalTotal: 14000, priority: 'wajib' },
+      { name: 'Bawang Merah Brebes 250g', category: 'Bumbu & Minyak', unit: 'pack', qty: 1, unitPrice: 11000, discount: '', finalTotal: 11000, priority: 'wajib' },
+      { name: 'Bawang Putih 250g', category: 'Bumbu & Minyak', unit: 'pack', qty: 1, unitPrice: 10500, discount: '', finalTotal: 10500, priority: 'wajib' },
+      { name: 'Kecap Manis Bango 520ml', category: 'Bumbu & Minyak', unit: 'pouch', qty: 1, unitPrice: 24000, discount: '', finalTotal: 24000, priority: 'wajib' },
+      { name: 'Chitato Sapi Panggang 68g', category: 'Camilan', unit: 'bungkus', qty: 2, unitPrice: 11500, discount: '', finalTotal: 23000, priority: 'opsional' },
+      { name: 'Shampoo Sunsilk 160ml', category: 'Kebersihan & Mandi', unit: 'botol', qty: 1, unitPrice: 21000, discount: '', finalTotal: 21000, priority: 'opsional' }
     ]
   }
 ];
@@ -197,7 +207,7 @@ class DBManager {
       localStorage.setItem(STORAGE_KEYS.BUDGET, '350000');
     }
 
-    // 2. Benchmarks Catalog
+    // 2. Benchmarks Katalog
     if (!localStorage.getItem(STORAGE_KEYS.BENCHMARKS)) {
       const benchmarkMap = {};
       INITIAL_BENCHMARK_CATALOG.forEach(item => {
@@ -206,15 +216,74 @@ class DBManager {
       localStorage.setItem(STORAGE_KEYS.BENCHMARKS, JSON.stringify(benchmarkMap));
     }
 
-    // 3. Troli Aktif
+    // 3. Troli Aktif Demo
     if (!localStorage.getItem(STORAGE_KEYS.CART)) {
       localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(INITIAL_DEMO_CART));
     }
 
-    // 4. Riwayat Belanja
+    // 4. Riwayat Belanja Bulan Lalu
     if (!localStorage.getItem(STORAGE_KEYS.HISTORY)) {
       localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(INITIAL_DEMO_HISTORY));
     }
+
+    // 5. Daftar Toko Sekitar
+    if (!localStorage.getItem(STORAGE_KEYS.STORES)) {
+      localStorage.setItem(STORAGE_KEYS.STORES, JSON.stringify(DEFAULT_STORES));
+    }
+  }
+
+  // --- Store Management Methods ---
+  getStores() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.STORES);
+      return raw ? JSON.parse(raw) : DEFAULT_STORES;
+    } catch (e) {
+      return DEFAULT_STORES;
+    }
+  }
+
+  getActiveStore() {
+    const storeId = localStorage.getItem(STORAGE_KEYS.ACTIVE_STORE);
+    const stores = this.getStores();
+    return stores.find(s => s.id === storeId) || stores[0] || null;
+  }
+
+  setActiveStore(storeId) {
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_STORE, storeId);
+  }
+
+  getCatalog() {
+    return INITIAL_BENCHMARK_CATALOG;
+  }
+
+  getCatalogByCategory(category) {
+    const list = (!category || category === 'all') 
+      ? INITIAL_BENCHMARK_CATALOG 
+      : INITIAL_BENCHMARK_CATALOG.filter(item => item.category === category);
+    
+    // Sesuaikan harga dengan toko yang sedang dipilih
+    const activeStore = this.getActiveStore();
+    const multiplier = activeStore?.priceMultiplier || 1.0;
+
+    return list.map(item => {
+      // Bulatkan ke ratusan terdekat
+      const adjustedPrice = Math.round((item.lastPrice * multiplier) / 100) * 100;
+      return {
+        ...item,
+        lastPrice: adjustedPrice,
+        benchmarkPrice: item.lastPrice,
+        storeName: activeStore?.name || 'Toko'
+      };
+    });
+  }
+
+  // --- Theme Mode (Dark & Light Mode) ---
+  getTheme() {
+    return localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
+  }
+
+  setTheme(theme) {
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
   }
 
   // --- Realtime onSnapshot Ingestion (Dari Cloud ke Lokal) ---
@@ -255,7 +324,7 @@ class DBManager {
     return val ? parseFloat(val) : 350000;
   }
 
-  setBudgetCap(amount) {
+  setBudgetCap(amount, fromSnapshot = false) {
     const safeAmount = Math.max(10000, parseFloat(amount) || 350000);
     localStorage.setItem(STORAGE_KEYS.BUDGET, safeAmount.toString());
 
@@ -277,14 +346,14 @@ class DBManager {
     }
   }
 
-  saveCart(cart) {
+  saveCart(cart, fromSnapshot = false) {
     localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
   }
 
   addItemToCart(itemData) {
     const cart = this.getCart();
     const newItem = {
-      id: 'item-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      id: itemData.id || ('item-' + Date.now() + '-' + Math.floor(Math.random() * 1000)),
       name: (itemData.name || '').trim(),
       category: itemData.category || 'Makanan Pokok',
       unit: itemData.unit || 'pcs',
@@ -364,17 +433,18 @@ class DBManager {
     return foundKey ? map[foundKey] : null;
   }
 
-  updateBenchmark(productName, price, category, unit) {
+  updateBenchmark(productName, price, category, unit, fromSnapshot = false) {
     if (!productName || !price) return;
     const clean = productName.toLowerCase().trim();
     const map = this.getBenchmarkMap();
-    map[clean] = {
+    const benchData = {
       name: productName.trim(),
       category: category || (map[clean]?.category || 'Makanan Pokok'),
       unit: unit || (map[clean]?.unit || 'pcs'),
       lastPrice: parseFloat(price),
       date: new Date().toISOString()
     };
+    map[clean] = benchData;
     localStorage.setItem(STORAGE_KEYS.BENCHMARKS, JSON.stringify(map));
 
     if (!this.isSyncingFromRemote && window.firebaseService && window.firebaseService.isAuthenticated()) {
@@ -396,10 +466,6 @@ class DBManager {
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(historyList));
   }
 
-  /**
-   * Finalize current cart into shopping trip history,
-   * then updates benchmarks database with new prices!
-   */
   finishShoppingSession(sessionTitle) {
     const cart = this.getCart();
     if (cart.length === 0) return null;
@@ -446,6 +512,11 @@ class DBManager {
     history.unshift(newTrip);
     this.saveHistory(history);
 
+    // Simpan ke Firestore
+    if (window.firebaseService && window.firebaseService.isUserLoggedIn()) {
+      window.firebaseService.saveHistoryTrip(newTrip);
+    }
+
     // Kosongkan troli aktif setelah checkout
     this.clearCart();
 
@@ -468,11 +539,37 @@ class DBManager {
     return history;
   }
 
+  // --- Snapshot Handlers (Dipanggil oleh onSnapshot tanpa echo-loop) ---
+
+  applyCartSnapshot(items) {
+    if (Array.isArray(items)) {
+      this.saveCart(items, true);
+    }
+  }
+
+  applyBudgetSnapshot(amount) {
+    if (amount) {
+      this.setBudgetCap(amount, true);
+    }
+  }
+
+  applyHistorySnapshot(historyList) {
+    if (Array.isArray(historyList)) {
+      this.saveHistory(historyList);
+    }
+  }
+
+  applyBenchmarksSnapshot(benchmarks) {
+    if (benchmarks && typeof benchmarks === 'object') {
+      localStorage.setItem(STORAGE_KEYS.BENCHMARKS, JSON.stringify(benchmarks));
+    }
+  }
+
   // --- Backup & Restore (JSON) ---
   exportDatabaseJSON() {
     const backupData = {
       app: 'Smart Grocery & Budget Safety Tracker',
-      version: '1.0.0',
+      version: '2.0.0',
       exportedAt: new Date().toISOString(),
       budgetCap: this.getBudgetCap(),
       cart: this.getCart(),

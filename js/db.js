@@ -1,31 +1,100 @@
 // Database & LocalStorage Manager untuk Smart Grocery & Budget Safety Tracker
-// Menangani F-01, F-04, dan F-06 (Penyimpanan & Riwayat Belanja)
+// Menangani F-01, F-04, dan F-06 (Penyimpanan, Riwayat Belanja, & Integrasi Realtime Firestore)
 
 const STORAGE_KEYS = {
   CART: 'trolibijak_active_cart_v1',
   HISTORY: 'trolibijak_history_v1',
   BUDGET: 'trolibijak_budget_cap_v1',
-  BENCHMARKS: 'trolibijak_price_benchmarks_v1'
+  BENCHMARKS: 'trolibijak_price_benchmarks_v1',
+  STORES: 'trolibijak_stores_v1',
+  ACTIVE_STORE: 'trolibijak_active_store_v1'
 };
 
-// Data Patokan Realistis Bulan Lalu (September 2026) Khusus Anak Rantau Kost
+// Data Daftar Toko Belanja Sekitar (Sesuai Permintaan: Indomaret Jl. Jabodetabek & Toko Pasar Lama)
+const DEFAULT_STORES = [
+  {
+    id: 'store-1',
+    name: 'Indomaret Jabodetabek',
+    address: 'Jl. Jabodetabek No. 42 (Dekat Gerbang Utama Kampus)',
+    distance: '350 m',
+    hours: '24 Jam',
+    type: 'Minimarket Rekomendasi',
+    note: 'Sedia sembako, minuman dingin & kebutuhan harian'
+  },
+  {
+    id: 'store-2',
+    name: 'Toko Sembako Pasar Lama',
+    address: 'Jl. Pasar Lama Raya No. 18 (Depan Toko Beras Berkah)',
+    distance: '800 m',
+    hours: '06:00 - 17:00',
+    type: 'Pasar Tradisional Murah',
+    note: 'Harga beras, telur & bumbu dapur grosir murah'
+  },
+  {
+    id: 'store-3',
+    name: 'Alfamart Surya Kencana',
+    address: 'Jl. Jabodetabek Blok B No. 7',
+    distance: '500 m',
+    hours: '07:00 - 23:00',
+    type: 'Minimarket Promo Mingguan',
+    note: 'Promo mingguan sabun mandi, deterjen & camilan'
+  },
+  {
+    id: 'store-4',
+    name: 'Superindo Swalayan Margonda',
+    address: 'Jl. Margonda Raya No. 120 (Depan Stasiun)',
+    distance: '1.2 km',
+    hours: '08:00 - 22:00',
+    type: 'Supermarket Lengkap & Segar',
+    note: 'Lengkap untuk belanja bulanan & bahan segar'
+  }
+];
+
+// Data Patokan Realistis & Katalog Belanja Cepat per Kategori
 const INITIAL_BENCHMARK_CATALOG = [
+  // --- MAKANAN POKOK ---
   { name: 'Beras Premium 5kg', category: 'Makanan Pokok', unit: 'pack', lastPrice: 72000, date: '2026-09-15' },
-  { name: 'Minyak Goreng Sania 2L', category: 'Bumbu & Minyak', unit: 'liter', lastPrice: 33500, date: '2026-09-15' },
   { name: 'Telur Ayam Negeri 1kg', category: 'Makanan Pokok', unit: 'kg', lastPrice: 28000, date: '2026-09-15' },
   { name: 'Indomie Goreng (Pack)', category: 'Makanan Pokok', unit: 'pcs', lastPrice: 3100, date: '2026-09-15' },
-  { name: 'Susu UHT Full Cream 1L', category: 'Minuman', unit: 'liter', lastPrice: 18500, date: '2026-09-15' },
+  { name: 'Indomie Ayam Bawang', category: 'Makanan Pokok', unit: 'pcs', lastPrice: 3100, date: '2026-09-15' },
+  { name: 'Tempe & Tahu Segar', category: 'Makanan Pokok', unit: 'pack', lastPrice: 8000, date: '2026-09-15' },
+  { name: 'Roti Tawar Gandum', category: 'Makanan Pokok', unit: 'pack', lastPrice: 16000, date: '2026-09-15' },
+  { name: 'Kornet Sapi Pronas 198g', category: 'Makanan Pokok', unit: 'kaleng', lastPrice: 24500, date: '2026-09-15' },
+  { name: 'Sarden ABC Saus Tomat 155g', category: 'Makanan Pokok', unit: 'kaleng', lastPrice: 11000, date: '2026-09-15' },
+
+  // --- PERLENGKAPAN MANDI & KEBERSIHAN ---
+  { name: 'Sabun Mandi Dettol Refill 410ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 22000, date: '2026-09-15' },
+  { name: 'Sabun Mandi Lifebuoy Bar', category: 'Kebersihan & Mandi', unit: 'pcs', lastPrice: 4500, date: '2026-09-15' },
+  { name: 'Shampoo Sunsilk 160ml', category: 'Kebersihan & Mandi', unit: 'botol', lastPrice: 21000, date: '2026-09-15' },
+  { name: 'Pasta Gigi Pepsodent 190g', category: 'Kebersihan & Mandi', unit: 'pcs', lastPrice: 14000, date: '2026-09-15' },
+  { name: 'Sikat Gigi Formula 3s', category: 'Kebersihan & Mandi', unit: 'pack', lastPrice: 12000, date: '2026-09-15' },
   { name: 'Deterjen Rinso Molto 770g', category: 'Kebersihan & Mandi', unit: 'pack', lastPrice: 19500, date: '2026-09-15' },
   { name: 'Sabun Cuci Piring Sunlight 700ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 13500, date: '2026-09-15' },
-  { name: 'Sabun Mandi Dettol Refill 410ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 22000, date: '2026-09-15' },
-  { name: 'Pasta Gigi Pepsodent 190g', category: 'Kebersihan & Mandi', unit: 'pcs', lastPrice: 14000, date: '2026-09-15' },
+  { name: 'Pewangi Pakaian Downy 650ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 18000, date: '2026-09-15' },
+  { name: 'Pembersih Lantai Wipol 750ml', category: 'Kebersihan & Mandi', unit: 'pouch', lastPrice: 16000, date: '2026-09-15' },
+  { name: 'Tisu Wajah Paseo 250s', category: 'Kebersihan & Mandi', unit: 'pack', lastPrice: 14500, date: '2026-09-15' },
+
+  // --- BUMBU & MINYAK ---
+  { name: 'Minyak Goreng Sania 2L', category: 'Bumbu & Minyak', unit: 'liter', lastPrice: 33500, date: '2026-09-15' },
   { name: 'Bawang Merah Brebes 250g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 11000, date: '2026-09-15' },
   { name: 'Bawang Putih 250g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 10500, date: '2026-09-15' },
-  { name: 'Kopi Instan Sachet 10s', category: 'Minuman', unit: 'pack', lastPrice: 15000, date: '2026-09-15' },
   { name: 'Kecap Manis Bango 520ml', category: 'Bumbu & Minyak', unit: 'pouch', lastPrice: 24000, date: '2026-09-15' },
+  { name: 'Saus Sambal ABC 275ml', category: 'Bumbu & Minyak', unit: 'botol', lastPrice: 12500, date: '2026-09-15' },
+  { name: 'Garam Dapur Beriodium 250g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 4000, date: '2026-09-15' },
+  { name: 'Royco Kaldu Ayam 230g', category: 'Bumbu & Minyak', unit: 'pack', lastPrice: 10500, date: '2026-09-15' },
+
+  // --- MINUMAN ---
+  { name: 'Susu UHT Full Cream 1L', category: 'Minuman', unit: 'liter', lastPrice: 18500, date: '2026-09-15' },
+  { name: 'Kopi Instan Sachet 10s', category: 'Minuman', unit: 'pack', lastPrice: 15000, date: '2026-09-15' },
+  { name: 'Teh Celup Sariwangi 25s', category: 'Minuman', unit: 'pack', lastPrice: 7500, date: '2026-09-15' },
+  { name: 'Air Mineral Aqua 1500ml', category: 'Minuman', unit: 'botol', lastPrice: 6000, date: '2026-09-15' },
+  { name: 'Teh Botol Sosro 450ml', category: 'Minuman', unit: 'botol', lastPrice: 5500, date: '2026-09-15' },
+
+  // --- CAMILAN ---
   { name: 'Chitato Sapi Panggang 68g', category: 'Camilan', unit: 'bungkus', lastPrice: 11500, date: '2026-09-15' },
   { name: 'Biskuit Roma Kelapa 300g', category: 'Camilan', unit: 'pack', lastPrice: 10000, date: '2026-09-15' },
-  { name: 'Shampoo Sunsilk 160ml', category: 'Kebersihan & Mandi', unit: 'botol', lastPrice: 21000, date: '2026-09-15' }
+  { name: 'Oreo Vanilla Roll 123g', category: 'Camilan', unit: 'bungkus', lastPrice: 9500, date: '2026-09-15' },
+  { name: 'Kacang Kulit Garuda 200g', category: 'Camilan', unit: 'pack', lastPrice: 14000, date: '2026-09-15' }
 ];
 
 // Troli Awal Demo (Menampilkan variasi harga naik, turun, stabil & diskon bertingkat)
@@ -36,7 +105,7 @@ const INITIAL_DEMO_CART = [
     category: 'Makanan Pokok',
     unit: 'pack',
     qty: 1,
-    unitPrice: 75000, // Naik vs 72.000 (↑ Merah)
+    unitPrice: 75000,
     discount: '',
     priority: 'wajib',
     notes: 'Kebutuhan pokok 1 bulan'
@@ -47,8 +116,8 @@ const INITIAL_DEMO_CART = [
     category: 'Bumbu & Minyak',
     unit: 'liter',
     qty: 1,
-    unitPrice: 31900, // Turun vs 33.500 (↓ Hijau Promo)
-    discount: '5%', // Ada diskon tambahan
+    unitPrice: 31900,
+    discount: '5%',
     priority: 'wajib',
     notes: 'Promo weekend supermarket'
   },
@@ -58,7 +127,7 @@ const INITIAL_DEMO_CART = [
     category: 'Makanan Pokok',
     unit: 'kg',
     qty: 1,
-    unitPrice: 28000, // Sama vs 28.000 (= Stabil)
+    unitPrice: 28000,
     discount: '',
     priority: 'wajib',
     notes: 'Stok protein kost'
@@ -70,7 +139,7 @@ const INITIAL_DEMO_CART = [
     unit: 'pouch',
     qty: 2,
     unitPrice: 25000,
-    discount: '50% + 20%', // Diskon bertingkat nyata! (F-03)
+    discount: '50% + 20%',
     priority: 'opsional',
     notes: 'Promo buy 2 extra member card'
   },
@@ -118,11 +187,12 @@ const INITIAL_DEMO_HISTORY = [
 
 class DBManager {
   constructor() {
+    this.isSyncingFromRemote = false;
     this.initData();
   }
 
   initData() {
-    // 1. Budget Cap (Default Rp 350.000 untuk troli aktif saat ini)
+    // 1. Budget Cap
     if (!localStorage.getItem(STORAGE_KEYS.BUDGET)) {
       localStorage.setItem(STORAGE_KEYS.BUDGET, '350000');
     }
@@ -147,6 +217,38 @@ class DBManager {
     }
   }
 
+  // --- Realtime onSnapshot Ingestion (Dari Cloud ke Lokal) ---
+
+  applyCartFromSnapshot(items) {
+    if (!Array.isArray(items)) return;
+    this.isSyncingFromRemote = true;
+    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(items));
+    this.isSyncingFromRemote = false;
+  }
+
+  applyBudgetFromSnapshot(budgetCap) {
+    if (budgetCap === undefined || budgetCap === null) return;
+    this.isSyncingFromRemote = true;
+    localStorage.setItem(STORAGE_KEYS.BUDGET, budgetCap.toString());
+    this.isSyncingFromRemote = false;
+  }
+
+  applyHistoryFromSnapshot(trips) {
+    if (!Array.isArray(trips)) return;
+    this.isSyncingFromRemote = true;
+    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(trips));
+    this.isSyncingFromRemote = false;
+  }
+
+  applyBenchmarksFromSnapshot(benchmarksMap) {
+    if (!benchmarksMap || typeof benchmarksMap !== 'object') return;
+    this.isSyncingFromRemote = true;
+    const current = this.getBenchmarkMap();
+    const merged = { ...current, ...benchmarksMap };
+    localStorage.setItem(STORAGE_KEYS.BENCHMARKS, JSON.stringify(merged));
+    this.isSyncingFromRemote = false;
+  }
+
   // --- Budget Methods ---
   getBudgetCap() {
     const val = localStorage.getItem(STORAGE_KEYS.BUDGET);
@@ -156,6 +258,11 @@ class DBManager {
   setBudgetCap(amount) {
     const safeAmount = Math.max(10000, parseFloat(amount) || 350000);
     localStorage.setItem(STORAGE_KEYS.BUDGET, safeAmount.toString());
+
+    if (!this.isSyncingFromRemote && window.firebaseService && window.firebaseService.isAuthenticated()) {
+      window.firebaseService.saveBudgetCap(safeAmount);
+    }
+
     return safeAmount;
   }
 
@@ -181,7 +288,7 @@ class DBManager {
       name: (itemData.name || '').trim(),
       category: itemData.category || 'Makanan Pokok',
       unit: itemData.unit || 'pcs',
-      qty: Math.max(0.1, parseFloat(itemData.qty) || 1),
+      qty: Math.max(1, parseInt(itemData.qty, 10) || 1),
       unitPrice: Math.max(0, parseFloat(itemData.unitPrice) || 0),
       discount: (itemData.discount || '').toString().trim(),
       priority: itemData.priority || 'wajib',
@@ -189,6 +296,11 @@ class DBManager {
     };
     cart.unshift(newItem); // Tambahkan ke paling atas troli
     this.saveCart(cart);
+
+    if (!this.isSyncingFromRemote && window.firebaseService && window.firebaseService.isAuthenticated()) {
+      window.firebaseService.saveCartItem(newItem);
+    }
+
     return newItem;
   }
 
@@ -198,6 +310,11 @@ class DBManager {
     if (index !== -1) {
       cart[index] = { ...cart[index], ...updates };
       this.saveCart(cart);
+
+      if (!this.isSyncingFromRemote && window.firebaseService && window.firebaseService.isAuthenticated()) {
+        window.firebaseService.saveCartItem(cart[index]);
+      }
+
       return cart[index];
     }
     return null;
@@ -207,11 +324,20 @@ class DBManager {
     let cart = this.getCart();
     cart = cart.filter(it => it.id !== id);
     this.saveCart(cart);
+
+    if (!this.isSyncingFromRemote && window.firebaseService && window.firebaseService.isAuthenticated()) {
+      window.firebaseService.deleteCartItem(id);
+    }
+
     return cart;
   }
 
   clearCart() {
     this.saveCart([]);
+
+    if (!this.isSyncingFromRemote && window.firebaseService && window.firebaseService.isAuthenticated()) {
+      window.firebaseService.clearCartInFirestore();
+    }
   }
 
   // --- Benchmark / Price Comparator Methods ---
@@ -232,7 +358,7 @@ class DBManager {
     // Exact match
     if (map[clean]) return map[clean];
 
-    // Fuzzy / Partial match (jika user mengetik sebagian nama)
+    // Fuzzy / Partial match
     const keys = Object.keys(map);
     const foundKey = keys.find(k => k.includes(clean) || clean.includes(k));
     return foundKey ? map[foundKey] : null;
@@ -250,6 +376,10 @@ class DBManager {
       date: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEYS.BENCHMARKS, JSON.stringify(map));
+
+    if (!this.isSyncingFromRemote && window.firebaseService && window.firebaseService.isAuthenticated()) {
+      window.firebaseService.saveBenchmark(productName, map[clean]);
+    }
   }
 
   // --- Shopping History Methods ---
@@ -319,6 +449,10 @@ class DBManager {
     // Kosongkan troli aktif setelah checkout
     this.clearCart();
 
+    if (!this.isSyncingFromRemote && window.firebaseService && window.firebaseService.isAuthenticated()) {
+      window.firebaseService.saveHistoryTrip(newTrip);
+    }
+
     return newTrip;
   }
 
@@ -326,6 +460,11 @@ class DBManager {
     let history = this.getHistory();
     history = history.filter(h => h.id !== tripId);
     this.saveHistory(history);
+
+    if (!this.isSyncingFromRemote && window.firebaseService && window.firebaseService.isAuthenticated()) {
+      window.firebaseService.deleteHistoryTrip(tripId);
+    }
+
     return history;
   }
 
@@ -346,9 +485,19 @@ class DBManager {
   importDatabaseJSON(jsonString) {
     try {
       const data = JSON.parse(jsonString);
-      if (data.budgetCap) localStorage.setItem(STORAGE_KEYS.BUDGET, data.budgetCap.toString());
-      if (Array.isArray(data.cart)) localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(data.cart));
-      if (Array.isArray(data.history)) localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(data.history));
+      if (data.budgetCap) this.setBudgetCap(data.budgetCap);
+      if (Array.isArray(data.cart)) {
+        this.saveCart(data.cart);
+        if (window.firebaseService && window.firebaseService.isAuthenticated()) {
+          data.cart.forEach(item => window.firebaseService.saveCartItem(item));
+        }
+      }
+      if (Array.isArray(data.history)) {
+        this.saveHistory(data.history);
+        if (window.firebaseService && window.firebaseService.isAuthenticated()) {
+          data.history.forEach(trip => window.firebaseService.saveHistoryTrip(trip));
+        }
+      }
       if (data.benchmarks && typeof data.benchmarks === 'object') {
         localStorage.setItem(STORAGE_KEYS.BENCHMARKS, JSON.stringify(data.benchmarks));
       }

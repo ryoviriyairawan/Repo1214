@@ -24,9 +24,51 @@
 </head>
 
 <body>
-  <!-- Container Khusus Smartphone (Mobile UI max-width 430px) -->
-  <div class="desktop-viewport-wrapper" id="appWrapper">
+  <!-- ============================================================
+       GATEWAY AUTENTIKASI WAJIB (MANDATORY SIGN-IN GATEWAY)
+       ============================================================ -->
+  <div class="mandatory-auth-gate" id="mandatoryAuthGate">
+    <div class="auth-gate-card">
+      <div class="auth-gate-brand">
+        <img src="favicon.png" alt="TroliBijak Logo" class="auth-gate-logo">
+        <h1 class="auth-gate-title">TroliBijak</h1>
+        <p class="auth-gate-tagline">Smart Grocery & Realtime Budget Tracker</p>
+      </div>
 
+      <div class="auth-gate-badge">
+        <span id="gateLockIconSlot"></span>
+        <span>Autentikasi Diperlukan</span>
+      </div>
+
+      <p class="auth-gate-desc">
+        Silakan masuk ke akun pilihan Anda untuk membuka akses pencatatan belanja, kalkulator harga, dan sinkronisasi realtime.
+      </p>
+
+      <!-- Pilihan 1: Masuk dengan Google Resmi -->
+      <button class="btn-gate-google" id="btnGateGoogleSignIn" type="button">
+        <span id="gateGoogleIconSlot"></span>
+        <span>Masuk dengan Akun Google</span>
+      </button>
+
+      <div class="auth-gate-divider">
+        <span>atau</span>
+      </div>
+
+      <!-- Pilihan 2: Masuk sebagai Tamu -->
+      <button class="btn-gate-guest" id="btnGateGuestSignIn" type="button">
+        <span id="gateGuestIconSlot"></span>
+        <span>Masuk sebagai Tamu</span>
+      </button>
+
+      <div class="auth-gate-footer-note">
+        <span id="gateShieldIconSlot"></span>
+        <span>Akun Google untuk sinkronisasi realtime, atau Tamu untuk mode lokal.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container Aplikasi Fullscreen -->
+  <div class="desktop-viewport-wrapper" id="appWrapper">
 
     <!-- Top App Header -->
     <header class="app-header">
@@ -38,6 +80,12 @@
         </div>
       </div>
       <div class="header-actions">
+        <!-- Google Authorization & Realtime Badge di Header -->
+        <button class="btn-auth-header" id="btnHeaderAuth" title="Google Authorization & Realtime Sync">
+          <span id="headerAuthIconSlot"></span>
+          <span id="headerAuthLabel">Masuk Google</span>
+          <span class="live-pulse-dot" id="headerLiveDot" style="display: none;"></span>
+        </button>
         <button class="btn-icon-ghost" id="btnQuickInfo" title="Informasi & Bantuan" aria-label="Bantuan">
           <span id="infoIconSlot"></span>
         </button>
@@ -135,9 +183,46 @@
       </section>
 
       <!-- ============================================================
-           TAB 3: ANGGARAN & PENGATURAN (F-05 & DATABASE BACKUP)
+           TAB 3: ANGGARAN & PENGATURAN (GOOGLE AUTH & CLOUD REALTIME)
            ============================================================ -->
       <section class="tab-view" id="tabAnggaran">
+
+        <!-- KARTU GOOGLE AUTHORIZATION & REALTIME ON-SNAPSHOT -->
+        <div class="budget-setting-card google-auth-card" id="cardGoogleAuth">
+          <div class="auth-card-header">
+            <div class="auth-user-avatar-wrap" id="authUserAvatarWrap">
+              <div class="auth-avatar-fallback" id="authAvatarFallback">
+                <span id="authDefaultUserIcon"></span>
+              </div>
+              <img id="authUserPhoto" src="" alt="Google Profile" class="auth-avatar-img" style="display: none;">
+            </div>
+            <div class="auth-user-info">
+              <div class="auth-user-name" id="authUserName">Tamu (Mode Lokal)</div>
+              <div class="auth-user-email" id="authUserEmail">Belum masuk akun Google</div>
+              <div class="auth-realtime-badge status-offline" id="authRealtimeBadge">
+                <span class="badge-dot"></span>
+                <span id="authRealtimeText">Mode Offline</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="auth-card-actions">
+            <button class="btn-google-login" id="btnGoogleSignIn" type="button">
+              <span id="googleIconSlot"></span>
+              <span id="btnGoogleSignInText">Masuk dengan Akun Google</span>
+            </button>
+            <button class="btn-google-logout" id="btnGoogleSignOut" type="button" style="display: none;">
+              <span id="logoutIconSlot"></span>
+              <span>Keluar Akun Google</span>
+            </button>
+          </div>
+
+          <div class="auth-sync-status-info" id="authSyncStatusInfo">
+            <span id="realtimeRadioIconSlot"></span>
+            <span id="authSyncStatusText">Sinkronisasi Realtime onSnapshot aktif otomatis setelah masuk Google</span>
+          </div>
+        </div>
+
         <!-- Pengaturan Safety Cap Dompet -->
         <div class="budget-setting-card">
           <h2 class="budget-card-title">
@@ -341,7 +426,7 @@
                   <span id="modalMinusIcon"></span>
                 </button>
                 <div style="display: flex; align-items: baseline; gap: 4px;">
-                  <input type="number" id="inputItemQty" class="stepper-qty-val" value="1" min="0.1" step="1"
+                  <input type="number" id="inputItemQty" class="stepper-qty-val" value="1" min="1" step="1"
                     style="background: transparent; border: none; width: 60px; text-align: center; color: white; outline: none;">
                   <span class="stepper-unit" id="modalSelectedUnitLabel">pcs</span>
                 </div>
@@ -454,8 +539,14 @@
 
   </div>
 
+  <!-- Firebase SDK Compat v10 (Google Auth & Firestore Realtime) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
   <!-- Scripts -->
   <script src="js/icons.js"></script>
+  <script src="js/firebase-config.js"></script>
   <script src="js/calculator.js"></script>
   <script src="js/db.js"></script>
   <script src="js/app.js"></script>

@@ -76,22 +76,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const summaryPriceDownCount = document.getElementById('summaryPriceDownCount');
   const summaryPriceEqualCount = document.getElementById('summaryPriceEqualCount');
 
-  // Firebase UI Elements
-  const btnCloudStatus = document.getElementById('btnCloudStatus');
-  const headerCloudDot = document.getElementById('headerCloudDot');
-  const headerCloudText = document.getElementById('headerCloudText');
-  const firebaseStatusBadge = document.getElementById('firebaseStatusBadge');
-  const btnOpenFirebaseModal = document.getElementById('btnOpenFirebaseModal');
-  const btnSyncToFirebase = document.getElementById('btnSyncToFirebase');
-  const btnSyncFromFirebase = document.getElementById('btnSyncFromFirebase');
-  const firebaseLastSyncText = document.getElementById('firebaseLastSyncText');
-  const modalFirebaseBackdrop = document.getElementById('modalFirebaseBackdrop');
-  const btnCloseFirebaseModal = document.getElementById('btnCloseFirebaseModal');
-  const formFirebaseConfig = document.getElementById('formFirebaseConfig');
-  const inputFirebaseConfigJson = document.getElementById('inputFirebaseConfigJson');
-  const inputFirebaseUserId = document.getElementById('inputFirebaseUserId');
-  const btnFillFirebaseSample = document.getElementById('btnFillFirebaseSample');
-  const btnDisconnectFirebase = document.getElementById('btnDisconnectFirebase');
+  // Google Auth & Realtime Elements
+  const btnHeaderAuth = document.getElementById('btnHeaderAuth');
+  const headerAuthIconSlot = document.getElementById('headerAuthIconSlot');
+  const headerAuthLabel = document.getElementById('headerAuthLabel');
+  const headerLiveDot = document.getElementById('headerLiveDot');
+
+  const cardGoogleAuth = document.getElementById('cardGoogleAuth');
+  const authUserName = document.getElementById('authUserName');
+  const authUserEmail = document.getElementById('authUserEmail');
+  const authUserPhoto = document.getElementById('authUserPhoto');
+  const authAvatarFallback = document.getElementById('authAvatarFallback');
+  const authRealtimeBadge = document.getElementById('authRealtimeBadge');
+  const authRealtimeText = document.getElementById('authRealtimeText');
+  const btnGoogleSignIn = document.getElementById('btnGoogleSignIn');
+  const btnGoogleSignOut = document.getElementById('btnGoogleSignOut');
+  const authSyncStatusText = document.getElementById('authSyncStatusText');
+
+  // Mandatory Sign-In Gate Elements
+  const mandatoryAuthGate = document.getElementById('mandatoryAuthGate');
+  const btnGateGoogleSignIn = document.getElementById('btnGateGoogleSignIn');
+  const btnGateGuestSignIn = document.getElementById('btnGateGuestSignIn');
 
   // ==========================================================================
   // RENDER UTAMA & EVENT LISTENERS
@@ -99,6 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Muat pertama kali
   refreshAppUI();
+  checkMandatoryAuthGate();
 
   // --- Navigasi Tab Bawah ---
   document.querySelectorAll('.nav-tab-btn').forEach(btn => {
@@ -168,19 +174,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- Stepper Qty di Modal ---
+  // --- Stepper Qty di Modal (Nilai biasa 1, 2, 3...) ---
   modalQtyMinusBtn.addEventListener('click', () => {
-    let val = parseFloat(inputItemQty.value) || 1;
+    let val = parseInt(inputItemQty.value, 10) || 1;
     if (val > 1) {
       inputItemQty.value = val - 1;
-    } else if (val > 0.1) {
-      inputItemQty.value = (val - 0.1).toFixed(1);
+    } else {
+      inputItemQty.value = 1;
     }
     updateModalLiveCalculations();
   });
 
   modalQtyPlusBtn.addEventListener('click', () => {
-    let val = parseFloat(inputItemQty.value) || 0;
+    let val = parseInt(inputItemQty.value, 10) || 0;
     inputItemQty.value = val + 1;
     updateModalLiveCalculations();
   });
@@ -204,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const name = inputItemName.value.trim();
     const price = parseFloat(inputItemUnitPrice.value);
-    const qty = parseFloat(inputItemQty.value) || 1;
+    const qty = Math.max(1, parseInt(inputItemQty.value, 10) || 1);
 
     if (!name) {
       showToast('Harap masukkan nama produk!', 'alert-triangle');
@@ -340,199 +346,301 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ==========================================================================
-  // FIREBASE CLOUD FIRESTORE EVENT HANDLERS & STATUS
+  // GOOGLE AUTHORIZATION & REALTIME ON-SNAPSHOT FIRESTORE SYNC
   // ==========================================================================
 
-  function updateFirebaseUIStatus(statusObj) {
-    if (!statusObj) return;
-    const { status, userId, lastSync, lastError } = statusObj;
-    const displayUser = userId || 'user1';
+  function updateGoogleAuthUI(user) {
+    if (user && !user.isGuest) {
+      let displayName = user.displayName || 'Pengguna Google';
+      if (displayName === 'Ryo' || displayName === 'Ryo Viriya') displayName = 'Pengguna';
 
-    if (btnCloudStatus) {
-      btnCloudStatus.className = `btn-cloud-status ${status}`;
-    }
-
-    if (headerCloudText) {
-      if (status === 'connected') {
-        headerCloudText.textContent = `${displayUser} • Cloud`;
-      } else if (status === 'offline') {
-        headerCloudText.textContent = `${displayUser} • Offline`;
-      } else if (status === 'error') {
-        headerCloudText.textContent = `${displayUser} • Error`;
-      } else {
-        headerCloudText.textContent = `${displayUser} • Lokal`;
+      // Header Auth Pill
+      if (btnHeaderAuth) {
+        btnHeaderAuth.classList.add('authenticated');
+        btnHeaderAuth.title = `Tersinkron Realtime: ${displayName} (${user.email || ''})`;
       }
-    }
-
-    if (firebaseStatusBadge) {
-      if (status === 'connected') {
-        firebaseStatusBadge.className = 'badge-pill badge-success';
-        firebaseStatusBadge.textContent = 'Cloud Terhubung';
-      } else if (status === 'offline') {
-        firebaseStatusBadge.className = 'badge-pill badge-warning';
-        firebaseStatusBadge.textContent = 'Offline (PWA)';
-      } else if (status === 'error') {
-        firebaseStatusBadge.className = 'badge-pill badge-danger';
-        firebaseStatusBadge.textContent = 'Gagal Konek';
-      } else {
-        firebaseStatusBadge.className = 'badge-pill badge-neutral';
-        firebaseStatusBadge.textContent = 'Mode Lokal';
+      if (headerAuthLabel) {
+        const firstName = displayName.split(' ')[0];
+        headerAuthLabel.textContent = firstName;
       }
-    }
+      if (headerAuthIconSlot) {
+        if (user.photoURL) {
+          headerAuthIconSlot.innerHTML = `<img src="${escapeHtml(user.photoURL)}" alt="Avatar" class="header-user-avatar" referrerpolicy="no-referrer">`;
+        } else {
+          headerAuthIconSlot.innerHTML = getLucideIcon('user', '', 14);
+        }
+      }
+      if (headerLiveDot) {
+        headerLiveDot.style.display = 'inline-block';
+      }
 
-    if (firebaseLastSyncText) {
-      if (lastSync) {
-        const d = new Date(lastSync);
-        const timeStr = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        firebaseLastSyncText.textContent = `User: [${displayUser}] • Sinkron jam ${timeStr}`;
-      } else {
-        firebaseLastSyncText.textContent = `User: [${displayUser}] • Belum tersinkron ke cloud`;
+      // Card di Tab Anggaran
+      if (authUserName) authUserName.textContent = displayName;
+      if (authUserEmail) authUserEmail.textContent = user.email || '';
+      if (authUserPhoto && authAvatarFallback) {
+        if (user.photoURL) {
+          authUserPhoto.src = user.photoURL;
+          authUserPhoto.style.display = 'block';
+          authAvatarFallback.style.display = 'none';
+        } else {
+          authUserPhoto.style.display = 'none';
+          authAvatarFallback.style.display = 'flex';
+        }
+      }
+      if (authRealtimeBadge && authRealtimeText) {
+        authRealtimeBadge.className = 'auth-realtime-badge status-live';
+        authRealtimeText.textContent = 'Realtime Live';
+      }
+      if (btnGoogleSignIn) btnGoogleSignIn.style.display = 'none';
+      if (btnGoogleSignOut) btnGoogleSignOut.style.display = 'flex';
+      if (authSyncStatusText) {
+        authSyncStatusText.textContent = '🔥 Realtime onSnapshot aktif (Tersinkron otomatis antar-perangkat)';
+      }
+    } else {
+      const isGuestMode = user && user.isGuest;
+      // Header Auth Pill
+      if (btnHeaderAuth) {
+        btnHeaderAuth.classList.remove('authenticated');
+        btnHeaderAuth.title = isGuestMode ? 'Mode Tamu (Klik untuk Masuk Google)' : 'Masuk dengan Akun Google untuk Realtime Sync';
+      }
+      if (headerAuthLabel) {
+        headerAuthLabel.textContent = isGuestMode ? 'Tamu' : 'Masuk Google';
+      }
+      if (headerAuthIconSlot) {
+        headerAuthIconSlot.innerHTML = isGuestMode ? getLucideIcon('user', '', 14) : getLucideIcon('google', '', 14);
+      }
+      if (headerLiveDot) {
+        headerLiveDot.style.display = 'none';
+      }
+
+      // Card di Tab Anggaran
+      if (authUserName) authUserName.textContent = 'Tamu (Mode Lokal)';
+      if (authUserEmail) authUserEmail.textContent = 'Data tersimpan di perangkat lokal';
+      if (authUserPhoto) authUserPhoto.style.display = 'none';
+      if (authAvatarFallback) authAvatarFallback.style.display = 'flex';
+      if (authRealtimeBadge && authRealtimeText) {
+        authRealtimeBadge.className = 'auth-realtime-badge status-offline';
+        authRealtimeText.textContent = 'Mode Offline (Lokal)';
+      }
+      if (btnGoogleSignIn) btnGoogleSignIn.style.display = 'flex';
+      if (btnGoogleSignOut) btnGoogleSignOut.style.display = 'none';
+      if (authSyncStatusText) {
+        authSyncStatusText.textContent = 'Masuk dengan Google untuk sinkronisasi antar perangkat secara realtime';
       }
     }
   }
 
-  function openFirebaseModal() {
-    if (window.firebaseService) {
-      const cfg = window.firebaseService.getConfig();
-      if (inputFirebaseConfigJson) {
-        inputFirebaseConfigJson.value = JSON.stringify(cfg, null, 2);
+  // Handler Utama Masuk dengan Akun Google
+  async function handleGoogleLoginClick() {
+    try {
+      if (btnGoogleSignIn) {
+        btnGoogleSignIn.disabled = true;
+        btnGoogleSignIn.innerHTML = `<span>Menghubungkan...</span>`;
       }
-      if (inputFirebaseUserId) {
-        inputFirebaseUserId.value = window.firebaseService.getUserIdSync();
+      if (btnHeaderAuth && !window.firebaseService?.isAuthenticated()) {
+        btnHeaderAuth.disabled = true;
+        btnHeaderAuth.innerHTML = `<span>Loading...</span>`;
       }
-    }
-    if (modalFirebaseBackdrop) {
-      modalFirebaseBackdrop.classList.add('active');
-    }
-  }
 
-  function closeFirebaseModal() {
-    if (modalFirebaseBackdrop) {
-      modalFirebaseBackdrop.classList.remove('active');
-    }
-  }
+      if (window.firebaseService) {
+        const user = await window.firebaseService.signInWithGoogle();
+        if (user) {
+          sessionStorage.setItem('trolibijak_session_unlocked', 'true');
+          hideMandatoryAuthGate();
+          showToast(`Selamat datang, ${user.displayName || 'Sobat Rantau'}!`, 'check-circle');
+          refreshAppUI();
+        }
+      }
+    } catch (err) {
+      console.warn('Google Sign-In Notice:', err.code, err.message);
+      let userFriendlyMsg = err.message || 'Gagal masuk dengan Google';
 
-  if (btnCloudStatus) btnCloudStatus.addEventListener('click', openFirebaseModal);
-  if (btnOpenFirebaseModal) btnOpenFirebaseModal.addEventListener('click', openFirebaseModal);
-  if (btnCloseFirebaseModal) btnCloseFirebaseModal.addEventListener('click', closeFirebaseModal);
-  if (modalFirebaseBackdrop) {
-    modalFirebaseBackdrop.addEventListener('click', (e) => {
-      if (e.target === modalFirebaseBackdrop) closeFirebaseModal();
-    });
-  }
+      if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
+        const confirmSim = confirm(
+          "⚠️ Google Authentication belum diaktifkan di Firebase Console proyek 'repo1214mung'.\n\n" +
+          "Langkah aktivasi di Firebase Console:\n" +
+          "1. Buka: https://console.firebase.google.com/project/repo1214mung/authentication\n" +
+          "2. Klik 'Get started' lalu aktifkan provider 'Google'\n\n" +
+          "Apakah Anda ingin masuk menggunakan Mode Simulasi Akun Google sekarang untuk menguji tampilan & fitur?"
+        );
+        if (confirmSim && window.firebaseService) {
+          const simUser = window.firebaseService.simulateGoogleSignIn();
+          sessionStorage.setItem('trolibijak_session_unlocked', 'true');
+          hideMandatoryAuthGate();
+          showToast(`Masuk sebagai ${simUser.displayName} (Simulasi Google)`, 'check-circle');
+          refreshAppUI();
+          return;
+        }
+        userFriendlyMsg = 'Google Auth belum diaktifkan di Firebase Console.';
+      } else if (err.code === 'auth/unauthorized-domain') {
+        userFriendlyMsg = 'Domain localhost belum ditambahkan ke Authorized Domains Firebase Console.';
+        alert(`⚠️ Info Domain:\n${userFriendlyMsg}\nTambahkan localhost di Firebase Console > Authentication > Settings > Authorized Domains.`);
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        userFriendlyMsg = 'Jendela login Google ditutup sebelum selesai.';
+      }
 
-  if (btnSyncToFirebase) {
-    btnSyncToFirebase.addEventListener('click', async () => {
-      try {
-        btnSyncToFirebase.disabled = true;
-        btnSyncToFirebase.innerHTML = `<span>Mengunggah...</span>`;
-        const res = await db.syncAllToFirestore();
-        showToast(`Berhasil upload ${res.itemCount} data untuk [${res.userId}] ke Firebase!`, 'check-circle');
-        refreshAppUI();
-      } catch (err) {
-        console.error('Sync to firebase error:', err);
-        showToast(`Gagal upload: ${err.message}`, 'alert-triangle');
-      } finally {
-        btnSyncToFirebase.disabled = false;
-        btnSyncToFirebase.innerHTML = `
-          <span id="uploadCloudIconSlot">${getLucideIcon('cloud-upload', '', 16)}</span>
-          <span>Unggah ke Cloud</span>
+      showToast(userFriendlyMsg, 'alert-triangle');
+    } finally {
+      if (btnGoogleSignIn) {
+        btnGoogleSignIn.disabled = false;
+        btnGoogleSignIn.innerHTML = `
+          <span id="googleIconSlot">${getLucideIcon('google', '', 18)}</span>
+          <span id="btnGoogleSignInText">Masuk dengan Akun Google</span>
         `;
       }
-    });
+      if (btnHeaderAuth) {
+        btnHeaderAuth.disabled = false;
+        updateGoogleAuthUI(window.firebaseService?.getCurrentUser());
+      }
+    }
   }
 
-  if (btnSyncFromFirebase) {
-    btnSyncFromFirebase.addEventListener('click', async () => {
-      try {
-        btnSyncFromFirebase.disabled = true;
-        btnSyncFromFirebase.innerHTML = `<span>Mengunduh...</span>`;
-        const cloudData = await db.downloadAllFromFirestore();
-        showToast(`Data [${cloudData.userId}] berhasil ditarik dari Firebase!`, 'check-circle');
+  // Event Listener: Masuk dengan Akun Google
+  if (btnGoogleSignIn) {
+    btnGoogleSignIn.addEventListener('click', handleGoogleLoginClick);
+  }
+
+  // Event Listener: Keluar dari Akun Google
+  if (btnGoogleSignOut) {
+    btnGoogleSignOut.addEventListener('click', async () => {
+      if (window.firebaseService) {
+        sessionStorage.removeItem('trolibijak_session_unlocked');
+        await window.firebaseService.signOutGoogle();
+        showToast('Berhasil keluar dari Akun Google', 'info');
+        showMandatoryAuthGate();
         refreshAppUI();
-      } catch (err) {
-        console.error('Download from firebase error:', err);
-        showToast(`Gagal tarik data: ${err.message}`, 'alert-triangle');
-      } finally {
-        btnSyncFromFirebase.disabled = false;
-        btnSyncFromFirebase.innerHTML = `
-          <span id="downloadCloudIconSlot">${getLucideIcon('cloud-download', '', 16)}</span>
-          <span>Tarik dari Cloud</span>
-        `;
       }
     });
   }
 
-  if (formFirebaseConfig) {
-    formFirebaseConfig.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  // Event Listener: Tombol Auth di Header
+  if (btnHeaderAuth) {
+    btnHeaderAuth.addEventListener('click', () => {
+      if (window.firebaseService && window.firebaseService.isAuthenticated()) {
+        switchTab('tabAnggaran');
+      } else {
+        handleGoogleLoginClick();
+      }
+    });
+  }
+
+  // ==========================================================================
+  // GATEWAY AUTENTIKASI WAJIB (MANDATORY SIGN-IN GATE)
+  // Setiap kali buka aplikasi, ada kewajiban sign-in ke akun pilihan
+  // ==========================================================================
+
+  function checkMandatoryAuthGate() {
+    const isUnlocked = sessionStorage.getItem('trolibijak_session_unlocked');
+    const isAuth = window.firebaseService && window.firebaseService.isAuthenticated();
+
+    if (!isUnlocked || !isAuth) {
+      showMandatoryAuthGate();
+    } else {
+      hideMandatoryAuthGate();
+    }
+  }
+
+  function showMandatoryAuthGate() {
+    if (mandatoryAuthGate) {
+      mandatoryAuthGate.classList.remove('hidden');
+    }
+  }
+
+  function hideMandatoryAuthGate() {
+    if (mandatoryAuthGate) {
+      mandatoryAuthGate.classList.add('hidden');
+    }
+  }
+
+  // Tombol Google di Gate
+  if (btnGateGoogleSignIn) {
+    btnGateGoogleSignIn.addEventListener('click', async () => {
       try {
-        const rawJson = inputFirebaseConfigJson.value.trim();
-        let parsedConfig;
-        try {
-          parsedConfig = JSON.parse(rawJson);
-        } catch (jsonErr) {
-          try {
-            parsedConfig = (new Function(`return ${rawJson}`))();
-          } catch (evalErr) {
-            throw new Error('Format JSON konfigurasi tidak valid!');
+        btnGateGoogleSignIn.disabled = true;
+        btnGateGoogleSignIn.innerHTML = `<span>Menghubungkan ke Google...</span>`;
+        if (window.firebaseService) {
+          const user = await window.firebaseService.signInWithGoogle();
+          if (user) {
+            sessionStorage.setItem('trolibijak_session_unlocked', 'true');
+            hideMandatoryAuthGate();
+            showToast(`Selamat datang, ${user.displayName || 'Pengguna Google'}!`, 'check-circle');
+            refreshAppUI();
           }
         }
-
-        const customUser = inputFirebaseUserId.value.trim() || 'user1';
-        if (window.firebaseService) {
-          await window.firebaseService.saveConfig(parsedConfig, customUser);
-          showToast(`Tersambung ke Firebase sebagai [${customUser}]!`, 'check-circle');
-          closeFirebaseModal();
-          try {
-            await db.syncAllToFirestore();
-          } catch(e){}
-          refreshAppUI();
-        }
       } catch (err) {
-        showToast(err.message, 'alert-triangle');
-      }
-    });
-  }
-
-  if (btnDisconnectFirebase) {
-    btnDisconnectFirebase.addEventListener('click', () => {
-      if (confirm('Putus koneksi Firebase dan kembali ke mode penyimpanan lokal?')) {
-        if (window.firebaseService) {
-          window.firebaseService.clearConfig();
-          showToast('Koneksi Firebase diputus. Mode lokal aktif.', 'info');
-          closeFirebaseModal();
-          refreshAppUI();
+        console.warn('Gate Google Sign-In Error:', err);
+        if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
+          const confirmSim = confirm(
+            "⚠️ Google Authentication belum diaktifkan di Firebase Console proyek 'repo1214mung'.\n\n" +
+            "Apakah Anda ingin masuk menggunakan Akun Google (Mode Pengujian) sekarang?"
+          );
+          if (confirmSim && window.firebaseService) {
+            const simUser = window.firebaseService.simulateGoogleSignIn({
+              displayName: 'Pengguna Google',
+              email: 'pengguna@gmail.com'
+            });
+            sessionStorage.setItem('trolibijak_session_unlocked', 'true');
+            hideMandatoryAuthGate();
+            showToast(`Masuk sebagai ${simUser.displayName}!`, 'check-circle');
+            refreshAppUI();
+          }
+        } else {
+          showToast(err.message || 'Gagal masuk dengan Google', 'alert-triangle');
+        }
+      } finally {
+        if (btnGateGoogleSignIn) {
+          btnGateGoogleSignIn.disabled = false;
+          btnGateGoogleSignIn.innerHTML = `
+            <span id="gateGoogleIconSlot">${getLucideIcon('google', '', 18)}</span>
+            <span>Masuk dengan Akun Google</span>
+          `;
         }
       }
     });
   }
 
-  if (btnFillFirebaseSample) {
-    btnFillFirebaseSample.addEventListener('click', () => {
+  // Tombol Tamu di Gate
+  if (btnGateGuestSignIn) {
+    btnGateGuestSignIn.addEventListener('click', () => {
       if (window.firebaseService) {
-        inputFirebaseConfigJson.value = JSON.stringify(FIREBASE_DEFAULT_CONFIG, null, 2);
+        const guestUser = window.firebaseService.signInAsGuest();
+        sessionStorage.setItem('trolibijak_session_unlocked', 'true');
+        hideMandatoryAuthGate();
+        showToast('Masuk sebagai Tamu', 'check-circle');
+        refreshAppUI();
       }
     });
   }
 
-  // Hook status observer & realtime sync
+  // Hook Firebase Service: Google Auth State & onSnapshot Realtime Listeners
   if (window.firebaseService) {
-    window.firebaseService.onStatusChange(updateFirebaseUIStatus);
-    window.firebaseService.subscribeRealtimeUpdates(
-      (items) => {
-        if (Array.isArray(items) && items.length > 0) {
-          db.saveCart(items);
-          refreshAppUI();
-        }
-      },
-      (newBudget) => {
-        if (newBudget) {
-          localStorage.setItem('trolibijak_budget_cap_v1', newBudget.toString());
-          refreshAppUI();
-        }
+    // 1. Dengarkan perubahan status login Google
+    window.firebaseService.onAuthStateChanged((user) => {
+      updateGoogleAuthUI(user);
+      if (user && sessionStorage.getItem('trolibijak_session_unlocked')) {
+        hideMandatoryAuthGate();
       }
-    );
+    });
+
+    // 2. Pasang onSnapshot listener untuk Cart, Budget, History, & Benchmarks
+    window.firebaseService.subscribeRealtimeSnapshots({
+      onCart: (items) => {
+        db.applyCartFromSnapshot(items);
+        refreshAppUI();
+      },
+      onBudget: (budgetCap) => {
+        db.applyBudgetFromSnapshot(budgetCap);
+        refreshAppUI();
+      },
+      onHistory: (trips) => {
+        db.applyHistoryFromSnapshot(trips);
+        refreshAppUI();
+      },
+      onBenchmarks: (benchmarks) => {
+        db.applyBenchmarksFromSnapshot(benchmarks);
+        refreshAppUI();
+      }
+    });
   }
 
   // ==========================================================================
@@ -766,10 +874,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let newQty = item.qty + delta;
     if (newQty <= 0) {
-      if (confirm(`Jumlah 0, hapus "${item.name}" dari troli?`)) {
-        db.removeCartItem(itemId);
-        showToast(`"${item.name}" dihapus dari troli`, 'trash-2');
-      }
+      db.removeCartItem(itemId);
+      showToast(`"${item.name}" dihapus dari troli`, 'trash-2');
     } else {
       db.updateCartItem(itemId, { qty: newQty });
     }
@@ -1089,7 +1195,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- F-02 & F-03: Live Calculations di Modal ---
   function updateModalLiveCalculations() {
     const price = parseFloat(inputItemUnitPrice.value) || 0;
-    const qty = parseFloat(inputItemQty.value) || 1;
+    const qty = Math.max(1, parseInt(inputItemQty.value, 10) || 1);
     const discountStr = inputItemDiscount.value.trim();
 
     const discInfo = Calculator.calculateTieredDiscount(price, discountStr);
@@ -1272,14 +1378,15 @@ document.addEventListener('DOMContentLoaded', () => {
       'backupIconSlot': ['download', '', 18],
       'exportIconSlot': ['download', '', 16],
       'importIconSlot': ['upload', '', 16],
-      'cloudIconSlot': ['cloud', '', 18],
-      'firebaseGearIconSlot': ['settings', '', 16],
-      'uploadCloudIconSlot': ['cloud-upload', '', 16],
-      'downloadCloudIconSlot': ['cloud-download', '', 16],
-      'firebaseModalIconSlot': ['flame', '', 20],
-      'firebaseCloseIconSlot': ['x', '', 18],
-      'saveFirebaseIconSlot': ['check', '', 18],
-      'guideFlameIconSlot': ['flame', '', 14]
+      'headerAuthIconSlot': ['google', '', 14],
+      'googleIconSlot': ['google', '', 18],
+      'logoutIconSlot': ['log-out', '', 16],
+      'authDefaultUserIcon': ['user', '', 22],
+      'realtimeRadioIconSlot': ['radio', '', 14],
+      'gateLockIconSlot': ['lock', '', 14],
+      'gateGoogleIconSlot': ['google', '', 18],
+      'gateGuestIconSlot': ['user', '', 16],
+      'gateShieldIconSlot': ['shield-check', '', 14]
     };
 
     for (const [id, [iconName, extraClass, size]] of Object.entries(iconSlots)) {

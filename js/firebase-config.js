@@ -1,9 +1,8 @@
 // ==========================================================================
-// FIREBASE CLOUD FIRESTORE SERVICE - TROLI BIJAK
-// Mengelola integrasi Database Cloud Firestore, Offline Persistence, & Multi-User Isolation (user1, user2, dst.)
+// FIREBASE CLOUD FIRESTORE & GOOGLE AUTH SERVICE - TROLI BIJAK
+// Mengelola Google Authorization, Realtime Sync dengan onSnapshot, & Multi-User Isolation
 // ==========================================================================
 
-// Konfigurasi resmi proyek Firebase TroliBijak
 const FIREBASE_DEFAULT_CONFIG = {
   apiKey: "AIzaSyBlw_oCY0LRA90Sp2UQ1aTJjVUk-HWnH7M",
   authDomain: "repo1214mung.firebaseapp.com",
@@ -16,22 +15,46 @@ const FIREBASE_DEFAULT_CONFIG = {
 class FirebaseServiceManager {
   constructor() {
     this.STORAGE_KEY = 'trolibijak_firebase_config_v1';
-    this.USER_ID_KEY = 'trolibijak_user_id_v1';
     this.LAST_SYNC_KEY = 'trolibijak_firebase_last_sync_v1';
-    
-    this.app = null;
-    this.db = null;
-    this.isInitialized = false;
-    this.status = 'connecting'; // 'connecting' | 'connected' | 'offline' | 'error' | 'not_configured'
-    this.lastError = null;
-    this.listeners = [];
-    this.statusCallback = null;
+    this.SIMULATED_USER_KEY = 'trolibijak_simulated_google_user_v1';
 
-    // Inisialisasi service
+    this.app = null;
+    this.auth = null;
+    this.db = null;
+    this.currentUser = null; // { uid, email, displayName, photoURL }
+    this.isInitialized = false;
+    this.status = 'connecting';
+    this.lastError = null;
+
+    // Snapshot listeners unsubscription functions
+    this.unsubscribers = [];
+
+    // Callbacks
+    this.authListeners = [];
+    this.statusListeners = [];
+    this.realtimeCallbacks = {
+      onCart: null,
+      onBudget: null,
+      onHistory: null,
+      onBenchmarks: null
+    };
+
+    // Muat session simulasi jika ada
+    try {
+      const savedSim = localStorage.getItem(this.SIMULATED_USER_KEY);
+      if (savedSim) {
+        this.currentUser = JSON.parse(savedSim);
+        if (this.currentUser && (this.currentUser.displayName === 'Ryo Viriya' || this.currentUser.displayName === 'Ryo')) {
+          this.currentUser.displayName = 'Pengguna';
+          this.currentUser.email = 'pengguna@trolibijak.id';
+        }
+      }
+    } catch(e){}
+
+    // Auto init
     this.init();
   }
 
-  // --- Manajemen Konfigurasi ---
   getConfig() {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -50,60 +73,7 @@ class FirebaseServiceManager {
     return !!(cfg && cfg.apiKey && cfg.projectId);
   }
 
-  // --- Multi-User Device Isolation (user1, user2, dst.) ---
-  
-  /**
-   * Mendapatkan ID user saat ini dari localStorage,
-   * atau membuat penomoran urut otomatis (user1, user2, ...) jika perangkat baru.
-   */
-  async getOrAssignUserId() {
-    let currentId = localStorage.getItem(this.USER_ID_KEY);
-    if (currentId && currentId.trim()) {
-      return currentId.trim();
-    }
-
-    // Jika belum ada ID di perangkat ini, ambil nomor urut dari Firestore
-    let assignedId = 'user1';
-
-    if (this.db) {
-      try {
-        const counterRef = this.db.collection('system_counters').doc('user_devices');
-        await this.db.runTransaction(async (transaction) => {
-          const doc = await transaction.get(counterRef);
-          let nextCount = 1;
-          if (doc.exists && doc.data().lastCount) {
-            nextCount = Number(doc.data().lastCount) + 1;
-          }
-          transaction.set(counterRef, {
-            lastCount: nextCount,
-            updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-
-          assignedId = `user${nextCount}`;
-        });
-      } catch (err) {
-        console.warn('Gagal transaksi penomoran user otomatis, fallback ke user1:', err);
-        assignedId = `user1`;
-      }
-    }
-
-    localStorage.setItem(this.USER_ID_KEY, assignedId);
-    console.log(`Perangkat ini terdaftar sebagai: ${assignedId}`);
-    return assignedId;
-  }
-
-  getUserIdSync() {
-    return localStorage.getItem(this.USER_ID_KEY) || 'user1';
-  }
-
-  setUserId(customId) {
-    const clean = (customId || 'user1').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-    localStorage.setItem(this.USER_ID_KEY, clean);
-    this.notifyStatusChange();
-    return clean;
-  }
-
-  // --- Inisialisasi Firebase & Cloud Firestore ---
+  // --- Inisialisasi Firebase ---
   async init(force = false) {
     if (this.isInitialized && !force) return true;
 
@@ -123,28 +93,45 @@ class FirebaseServiceManager {
         this.app = window.firebase.initializeApp(config);
       }
 
+      this.auth = window.firebase.auth();
       this.db = window.firebase.firestore();
 
-      // Aktifkan Offline Persistence untuk PWA
+      // Tangani hasil sign in redirect jika baru kembali dari halaman Google
+      this.auth.getRedirectResult().then(result => {
+        if (result && result.user) {
+          console.log('[TroliBijak] Google Redirect Sign-in sukses:', result.user.email);
+        }
+      }).catch(err => {
+        console.warn('[TroliBijak] Redirect result notice:', err.code, err.message);
+      });
+
+      // Pantau status autentikasi Google Firebase
+      this.auth.onAuthStateChanged((user) => {
+        if (user) {
+          // Bersihkan simulasi jika user real login
+          localStorage.removeItem(this.SIMULATED_USER_KEY);
+          this.handleAuthStateChanged(user);
+        } else if (!this.currentUser) {
+          this.handleAuthStateChanged(null);
+        }
+      });
+
+      // Coba aktifkan Firestore offline persistence
       try {
         await this.db.enablePersistence({ synchronizeTabs: true });
-        console.log('Firestore offline persistence aktif.');
+        console.log('[TroliBijak] Firestore offline persistence aktif.');
       } catch (persErr) {
         if (persErr.code === 'failed-precondition') {
-          console.warn('Persistence notice: Multiple tabs open');
-        } else if (persErr.code === 'unimplemented') {
-          console.warn('Browser tidak mendukung persistence Firestore');
+          console.warn('[TroliBijak] Persistence: Multi-tab open');
+        } else {
+          console.warn('[TroliBijak] Persistence notice:', persErr.message);
         }
       }
-
-      // Pastikan User ID sudah terdaftar / terisi
-      await this.getOrAssignUserId();
 
       this.isInitialized = true;
       this.status = navigator.onLine ? 'connected' : 'offline';
       this.lastError = null;
 
-      // Event listener status koneksi jaringan
       window.addEventListener('online', () => {
         this.status = 'connected';
         this.notifyStatusChange();
@@ -154,21 +141,149 @@ class FirebaseServiceManager {
         this.notifyStatusChange();
       });
 
+      // Jika ada session simulasi tersimpan, emit state
+      if (this.currentUser) {
+        this.notifyAuthChange(this.currentUser);
+      }
+
       this.notifyStatusChange();
       return true;
     } catch (err) {
-      console.error('Firebase init error:', err);
+      console.error('[TroliBijak] Firebase init error:', err);
       this.status = 'error';
-      this.lastError = err.message || 'Gagal terhubung ke Firebase';
+      this.lastError = err.message || 'Gagal menginisialisasi Firebase';
       this.notifyStatusChange();
       return false;
     }
   }
 
-  // --- Helper Referensi Dokumen Terisolasi per User ---
-  
+  // --- Google Authorization Handlers ---
+
+  async signInWithGoogle() {
+    if (!await this.init()) {
+      throw new Error(this.lastError || 'Firebase belum siap');
+    }
+
+    const provider = new window.firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    try {
+      const result = await this.auth.signInWithPopup(provider);
+      return result.user;
+    } catch (err) {
+      console.warn('[TroliBijak] Google Sign-In error:', err.code, err.message);
+
+      if (err.code === 'auth/popup-blocked') {
+        console.log('[TroliBijak] Popup terblokir browser, mencoba signInWithRedirect');
+        await this.auth.signInWithRedirect(provider);
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  simulateGoogleSignIn(customData = {}) {
+    const mockUser = {
+      uid: 'google-user-' + Math.floor(Math.random() * 899999 + 100000),
+      displayName: customData.displayName || 'Pengguna',
+      email: customData.email || 'pengguna@trolibijak.id',
+      photoURL: customData.photoURL || ''
+    };
+    this.currentUser = mockUser;
+    try {
+      localStorage.setItem(this.SIMULATED_USER_KEY, JSON.stringify(mockUser));
+    } catch(e){}
+
+    this.saveUserProfileMetadata();
+    this.startRealtimeSnapshots();
+    this.notifyAuthChange(this.currentUser);
+    this.notifyStatusChange();
+    return mockUser;
+  }
+
+  signInAsGuest() {
+    const guestUser = {
+      uid: 'guest-' + Math.floor(Math.random() * 899999 + 100000),
+      displayName: 'Tamu',
+      email: '',
+      photoURL: '',
+      isGuest: true
+    };
+    this.currentUser = guestUser;
+    try {
+      localStorage.setItem(this.SIMULATED_USER_KEY, JSON.stringify(guestUser));
+    } catch(e){}
+
+    this.notifyAuthChange(this.currentUser);
+    this.notifyStatusChange();
+    return guestUser;
+  }
+
+  async signOutGoogle() {
+    this.unsubscribeRealtimeSnapshots();
+    localStorage.removeItem(this.SIMULATED_USER_KEY);
+    if (this.auth) {
+      try {
+        await this.auth.signOut();
+      } catch(e){}
+    }
+    this.currentUser = null;
+    this.notifyAuthChange(null);
+    this.notifyStatusChange();
+  }
+
+  getCurrentUser() {
+    return this.currentUser;
+  }
+
+  isAuthenticated() {
+    return !!(this.currentUser && this.currentUser.uid);
+  }
+
+  getUserId() {
+    return this.currentUser ? this.currentUser.uid : 'guest';
+  }
+
+  async handleAuthStateChanged(user) {
+    if (user) {
+      this.currentUser = {
+        uid: user.uid,
+        displayName: user.displayName || user.email?.split('@')[0] || 'Pengguna Google',
+        email: user.email || '',
+        photoURL: user.photoURL || ''
+      };
+
+      this.saveUserProfileMetadata();
+      this.startRealtimeSnapshots();
+      this.initialCloudSyncCheck();
+    } else {
+      if (!localStorage.getItem(this.SIMULATED_USER_KEY)) {
+        this.currentUser = null;
+        this.unsubscribeRealtimeSnapshots();
+      }
+    }
+
+    this.notifyAuthChange(this.currentUser);
+    this.notifyStatusChange();
+  }
+
+  async saveUserProfileMetadata() {
+    if (!this.isAuthenticated() || !this.db) return;
+    try {
+      await this.getUserDocRef().set({
+        uid: this.currentUser.uid,
+        displayName: this.currentUser.displayName,
+        email: this.currentUser.email,
+        photoURL: this.currentUser.photoURL,
+        lastLoginAt: window.firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (e) {
+      // Abaikan jika database firestore belum aktif di console
+    }
+  }
+
   getUserDocRef() {
-    const uid = this.getUserIdSync();
+    const uid = this.getUserId();
     return this.db.collection('users').doc(uid);
   }
 
@@ -184,204 +299,159 @@ class FirebaseServiceManager {
     return this.getUserDocRef().collection('benchmarks');
   }
 
-  // --- Sinkronisasi Data Menyeluruh (Upload & Download Semua Data) ---
+  // --- Realtime Snapshots ---
 
-  /**
-   * Mengunggah seluruh data lokal pengguna saat ini ke Cloud Firestore
-   */
-  async uploadAllToFirestore(localData) {
-    if (!await this.init()) {
-      throw new Error(this.lastError || 'Firebase belum dapat diakses!');
-    }
+  startRealtimeSnapshots() {
+    if (!this.isAuthenticated() || !this.db) return;
+    this.unsubscribeRealtimeSnapshots();
 
-    const { budgetCap, cart, history, benchmarks } = localData;
-    const batch = this.db.batch();
-    const userDocRef = this.getUserDocRef();
-    const uid = this.getUserIdSync();
-
-    // 1. Simpan Limit Anggaran & Metadata User
-    batch.set(userDocRef, {
-      userId: uid,
-      budgetCap: budgetCap || 350000,
-      updatedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-      deviceInfo: navigator.userAgent
-    }, { merge: true });
-
-    // 2. Simpan Troli Aktif User
-    if (Array.isArray(cart)) {
-      cart.forEach(item => {
-        const itemRef = this.getCartCollectionRef().doc(item.id);
-        batch.set(itemRef, {
-          ...item,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
+    try {
+      // Cart snapshot
+      const unsubCart = this.getCartCollectionRef().onSnapshot(snapshot => {
+        const items = [];
+        snapshot.forEach(doc => {
+          items.push({ id: doc.id, ...doc.data() });
+        });
+        if (this.realtimeCallbacks.onCart && items.length > 0) {
+          this.realtimeCallbacks.onCart(items, snapshot.metadata.hasPendingWrites);
+        }
+      }, err => {
+        console.warn('[Realtime] Cart snapshot notice:', err.message);
       });
-    }
+      this.unsubscribers.push(unsubCart);
 
-    // 3. Simpan Riwayat Belanja User
-    if (Array.isArray(history)) {
-      history.forEach(trip => {
-        const tripRef = this.getHistoryCollectionRef().doc(trip.id);
-        batch.set(tripRef, {
-          ...trip,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
+      // User doc snapshot
+      const unsubUser = this.getUserDocRef().onSnapshot(doc => {
+        if (doc.exists) {
+          const data = doc.data();
+          if (data && data.budgetCap !== undefined && this.realtimeCallbacks.onBudget) {
+            this.realtimeCallbacks.onBudget(Number(data.budgetCap), doc.metadata.hasPendingWrites);
+          }
+        }
+      }, err => {
+        console.warn('[Realtime] User snapshot notice:', err.message);
       });
-    }
+      this.unsubscribers.push(unsubUser);
 
-    // 4. Simpan Patokan Harga (Benchmarks) User
-    if (benchmarks && typeof benchmarks === 'object') {
-      Object.keys(benchmarks).forEach(key => {
-        const safeDocId = encodeURIComponent(key).replace(/\./g, '%2E');
-        const benchRef = this.getBenchmarksCollectionRef().doc(safeDocId);
-        batch.set(benchRef, {
-          ...benchmarks[key],
-          key: key,
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
+      // History snapshot
+      const unsubHistory = this.getHistoryCollectionRef().onSnapshot(snapshot => {
+        const trips = [];
+        snapshot.forEach(doc => {
+          trips.push({ id: doc.id, ...doc.data() });
+        });
+        trips.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        if (this.realtimeCallbacks.onHistory && trips.length > 0) {
+          this.realtimeCallbacks.onHistory(trips, snapshot.metadata.hasPendingWrites);
+        }
+      }, err => {
+        console.warn('[Realtime] History snapshot notice:', err.message);
       });
+      this.unsubscribers.push(unsubHistory);
+
+      // Benchmarks snapshot
+      const unsubBench = this.getBenchmarksCollectionRef().onSnapshot(snapshot => {
+        const benchmarks = {};
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const key = data.key || (data.name ? data.name.toLowerCase().trim() : doc.id);
+          benchmarks[key] = data;
+        });
+        if (Object.keys(benchmarks).length > 0 && this.realtimeCallbacks.onBenchmarks) {
+          this.realtimeCallbacks.onBenchmarks(benchmarks, snapshot.metadata.hasPendingWrites);
+        }
+      }, err => {
+        console.warn('[Realtime] Benchmarks snapshot notice:', err.message);
+      });
+      this.unsubscribers.push(unsubBench);
+    } catch (e) {
+      console.warn('Gagal startRealtimeSnapshots:', e);
     }
-
-    await batch.commit();
-
-    const syncTime = new Date().toISOString();
-    localStorage.setItem(this.LAST_SYNC_KEY, syncTime);
-    this.status = 'connected';
-    this.notifyStatusChange();
-
-    return {
-      success: true,
-      userId: uid,
-      syncTime,
-      itemCount: (cart?.length || 0) + (history?.length || 0) + Object.keys(benchmarks || {}).length
-    };
   }
 
-  /**
-   * Mengunduh seluruh data pengguna saat ini dari Cloud Firestore
-   */
-  async downloadAllFromFirestore() {
-    if (!await this.init()) {
-      throw new Error(this.lastError || 'Firebase belum dapat diakses!');
-    }
-
-    // 1. Ambil Setting Anggaran
-    const userDoc = await this.getUserDocRef().get();
-    let budgetCap = 350000;
-    if (userDoc.exists && userDoc.data().budgetCap) {
-      budgetCap = Number(userDoc.data().budgetCap);
-    }
-
-    // 2. Ambil Troli Aktif
-    const cartSnapshot = await this.getCartCollectionRef().get();
-    const cart = [];
-    cartSnapshot.forEach(doc => {
-      cart.push(doc.data());
+  unsubscribeRealtimeSnapshots() {
+    this.unsubscribers.forEach(unsub => {
+      try { unsub(); } catch (e) {}
     });
-
-    // 3. Ambil Riwayat Belanja
-    const historySnapshot = await this.getHistoryCollectionRef().get();
-    const history = [];
-    historySnapshot.forEach(doc => {
-      history.push(doc.data());
-    });
-    history.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-
-    // 4. Ambil Patokan Harga
-    const benchSnapshot = await this.getBenchmarksCollectionRef().get();
-    const benchmarks = {};
-    benchSnapshot.forEach(doc => {
-      const data = doc.data();
-      const key = data.key || data.name.toLowerCase().trim();
-      benchmarks[key] = data;
-    });
-
-    const syncTime = new Date().toISOString();
-    localStorage.setItem(this.LAST_SYNC_KEY, syncTime);
-    this.status = 'connected';
-    this.notifyStatusChange();
-
-    return {
-      budgetCap,
-      cart,
-      history,
-      benchmarks,
-      syncTime,
-      userId: this.getUserIdSync()
-    };
+    this.unsubscribers = [];
   }
 
-  // --- Sinkronisasi Realtime Satuan (Background Sync) ---
+  subscribeRealtimeSnapshots(handlers = {}) {
+    this.realtimeCallbacks = { ...this.realtimeCallbacks, ...handlers };
+    if (this.isAuthenticated()) {
+      this.startRealtimeSnapshots();
+    }
+  }
+
+  // --- Operasi Firestore Realtime ---
 
   async saveCartItem(item) {
-    if (!this.isInitialized) return;
+    if (!this.isAuthenticated() || !this.db || !item || !item.id) return;
     try {
-      const ref = this.getCartCollectionRef().doc(item.id);
-      await ref.set({
+      await this.getCartCollectionRef().doc(item.id).set({
         ...item,
         updatedAt: new Date().toISOString()
       }, { merge: true });
     } catch (e) {
-      console.warn('Gagal simpan cart item ke Firestore:', e);
+      console.warn('Realtime saveCartItem error:', e.message);
     }
   }
 
   async deleteCartItem(itemId) {
-    if (!this.isInitialized) return;
+    if (!this.isAuthenticated() || !this.db || !itemId) return;
     try {
       await this.getCartCollectionRef().doc(itemId).delete();
     } catch (e) {
-      console.warn('Gagal hapus cart item di Firestore:', e);
+      console.warn('Realtime deleteCartItem error:', e.message);
     }
   }
 
   async clearCartInFirestore() {
-    if (!this.isInitialized) return;
+    if (!this.isAuthenticated() || !this.db) return;
     try {
       const snapshot = await this.getCartCollectionRef().get();
       const batch = this.db.batch();
       snapshot.forEach(doc => batch.delete(doc.ref));
       await batch.commit();
     } catch (e) {
-      console.warn('Gagal bersihkan cart di Firestore:', e);
+      console.warn('Realtime clearCartInFirestore error:', e.message);
     }
   }
 
   async saveBudgetCap(amount) {
-    if (!this.isInitialized) return;
+    if (!this.isAuthenticated() || !this.db) return;
     try {
       await this.getUserDocRef().set({
-        budgetCap: amount,
+        budgetCap: Number(amount),
         updatedAt: window.firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } catch (e) {
-      console.warn('Gagal simpan budgetCap ke Firestore:', e);
+      console.warn('Realtime saveBudgetCap error:', e.message);
     }
   }
 
   async saveHistoryTrip(trip) {
-    if (!this.isInitialized) return;
+    if (!this.isAuthenticated() || !this.db || !trip || !trip.id) return;
     try {
       await this.getHistoryCollectionRef().doc(trip.id).set({
         ...trip,
         updatedAt: new Date().toISOString()
       }, { merge: true });
     } catch (e) {
-      console.warn('Gagal simpan history trip ke Firestore:', e);
+      console.warn('Realtime saveHistoryTrip error:', e.message);
     }
   }
 
   async deleteHistoryTrip(tripId) {
-    if (!this.isInitialized) return;
+    if (!this.isAuthenticated() || !this.db || !tripId) return;
     try {
       await this.getHistoryCollectionRef().doc(tripId).delete();
     } catch (e) {
-      console.warn('Gagal hapus history trip di Firestore:', e);
+      console.warn('Realtime deleteHistoryTrip error:', e.message);
     }
   }
 
   async saveBenchmark(productName, itemData) {
-    if (!this.isInitialized || !productName) return;
+    if (!this.isAuthenticated() || !this.db || !productName) return;
     try {
       const cleanKey = productName.toLowerCase().trim();
       const safeDocId = encodeURIComponent(cleanKey).replace(/\./g, '%2E');
@@ -391,64 +461,65 @@ class FirebaseServiceManager {
         updatedAt: new Date().toISOString()
       }, { merge: true });
     } catch (e) {
-      console.warn('Gagal simpan benchmark ke Firestore:', e);
+      console.warn('Realtime saveBenchmark error:', e.message);
     }
   }
 
-  // --- Realtime Listener untuk Multi-Tab / Sinkronisasi Langsung ---
-  subscribeRealtimeUpdates(onCartUpdate, onBudgetUpdate) {
-    if (!this.isInitialized) return;
-    this.unsubscribeAll();
-
+  async initialCloudSyncCheck() {
+    if (!this.isAuthenticated() || !this.db) return;
     try {
-      const cartUnsub = this.getCartCollectionRef().onSnapshot(snapshot => {
-        const items = [];
-        snapshot.forEach(doc => items.push(doc.data()));
-        if (typeof onCartUpdate === 'function') onCartUpdate(items);
-      }, err => {
-        console.warn('Realtime cart notice:', err);
-      });
-      this.listeners.push(cartUnsub);
-
-      const userUnsub = this.getUserDocRef().onSnapshot(doc => {
-        if (doc.exists && doc.data().budgetCap) {
-          if (typeof onBudgetUpdate === 'function') onBudgetUpdate(doc.data().budgetCap);
+      const cartSnap = await this.getCartCollectionRef().get();
+      if (cartSnap.empty && window.db) {
+        const localCart = window.db.getCart();
+        if (Array.isArray(localCart) && localCart.length > 0) {
+          const batch = this.db.batch();
+          localCart.forEach(item => {
+            const ref = this.getCartCollectionRef().doc(item.id);
+            batch.set(ref, { ...item, updatedAt: new Date().toISOString() }, { merge: true });
+          });
+          await batch.commit();
         }
-      }, err => {
-        console.warn('Realtime user notice:', err);
-      });
-      this.listeners.push(userUnsub);
-    } catch (e) {
-      console.warn('Gagal pasang realtime listener:', e);
+      }
+    } catch (e) {}
+  }
+
+  // --- Observers ---
+
+  onAuthStateChanged(callback) {
+    if (typeof callback === 'function') {
+      this.authListeners.push(callback);
+      if (this.currentUser !== undefined) {
+        callback(this.currentUser);
+      }
     }
   }
 
-  unsubscribeAll() {
-    this.listeners.forEach(unsub => {
-      try { unsub(); } catch(e){}
+  notifyAuthChange(user) {
+    this.authListeners.forEach(cb => {
+      try { cb(user); } catch (e) {}
     });
-    this.listeners = [];
   }
 
-  // --- Status Observer ---
   onStatusChange(callback) {
     if (typeof callback === 'function') {
-      this.statusCallback = callback;
+      this.statusListeners.push(callback);
       callback(this.getStatus());
     }
   }
 
   notifyStatusChange() {
-    if (this.statusCallback) {
-      this.statusCallback(this.getStatus());
-    }
+    const status = this.getStatus();
+    this.statusListeners.forEach(cb => {
+      try { cb(status); } catch (e) {}
+    });
   }
 
   getStatus() {
     return {
-      status: this.status, // 'connected' | 'offline' | 'error' | 'connecting'
-      isConfigured: this.isConfigured(),
-      userId: this.getUserIdSync(),
+      status: this.status,
+      isAuthenticated: this.isAuthenticated(),
+      currentUser: this.currentUser,
+      userId: this.getUserId(),
       lastSync: localStorage.getItem(this.LAST_SYNC_KEY),
       lastError: this.lastError
     };
